@@ -13,4 +13,3 @@ set -x
 ../nebula --read-pts IN/bunny_2.pts --triangulate 0.01 --write-obj OUT/triangulated_pts_bunny_2.obj
 ../nebula --read-pts IN/bunny_3.pts --decimate 0.01 --write-xyz OUT/decimated_pts_bunny_3.xyz
 ../nebula --read-pts IN/bunny_3.pts --triangulate 0.01 --write-obj OUT/triangulated_pts_bunny_3.obj
-

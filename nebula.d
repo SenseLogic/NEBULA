@@ -305,9 +305,9 @@ struct VECTOR_3
     // -- ATTRIBUTES
 
     float
-        X,
-        Y,
-        Z;
+        X = 0.0f,
+        Y = 0.0f,
+        Z = 0.0f;
 
     // -- INQUIRIES
 
@@ -533,10 +533,10 @@ struct VECTOR_4
     // -- ATTRIBUTES
 
     float
-        X,
-        Y,
-        Z,
-        W;
+        X = 0.0f,
+        Y = 0.0f,
+        Z = 0.0f,
+        W = 0.0f;
 
     // -- OPERATIONS
 
@@ -1439,6 +1439,8 @@ class MESH
         PointArray;
     long[]
         PointIndexArray;
+    long[ POINT ]
+        PointIndexMap;
 
     // -- INQUIRIES
 
@@ -1536,8 +1538,25 @@ class MESH
         ref POINT point
         )
     {
-        PointIndexArray ~= PointArray.length;
-        PointArray ~= point;
+        long
+            point_index;
+        long*
+            found_point_index;
+
+        found_point_index = point in PointIndexMap;
+
+        if ( found_point_index is null )
+        {
+            point_index = PointArray.length;
+            PointArray ~= point;
+            PointIndexMap[ point ] = point_index;
+        }
+        else
+        {
+            point_index = *found_point_index;
+        }
+
+        PointIndexArray ~= point_index;
     }
 
     // ~~
