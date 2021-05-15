@@ -52,6 +52,10 @@ nebula --read-pts cloud.pts --decimate 0.01 --write-pts decimated_cloud.pts
 nebula --read-pts cloud.pts --triangulate 0.01 --write-obj triangulated_mesh.obj
 ```
 
+![](https://github.com/senselogic/NEBULA/blob/master/SCREENSHOT/cloud.png)
+![](https://github.com/senselogic/NEBULA/blob/master/SCREENSHOT/decimated_cloud.png)
+![](https://github.com/senselogic/NEBULA/blob/master/SCREENSHOT/triangulated_mesh.png)
+
 ## Version
 
 1.0

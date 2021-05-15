@@ -396,6 +396,44 @@ struct VECTOR_3
 
     // ~~
 
+    void Clip(
+        ref VECTOR_3 minimum_vector,
+        ref VECTOR_3 maximum_vector
+        )
+    {
+        if ( X < minimum_vector.X )
+        {
+            X = minimum_vector.X;
+        }
+
+        if ( Y < minimum_vector.Y )
+        {
+            Y = minimum_vector.Y;
+        }
+
+        if ( Z < minimum_vector.Z )
+        {
+            Z = minimum_vector.Z;
+        }
+
+        if ( X > maximum_vector.X )
+        {
+            X = maximum_vector.X;
+        }
+
+        if ( Y > maximum_vector.Y )
+        {
+            Y = maximum_vector.Y;
+        }
+
+        if ( Z > maximum_vector.Z )
+        {
+            Z = maximum_vector.Z;
+        }
+    }
+
+    // ~~
+
     void Translate(
         float x_translation,
         float y_translation,
@@ -656,6 +694,22 @@ struct POINT
         )
     {
         PositionVector.SetFromCellIndex( cell_index, 0.5 );
+    }
+
+    // ~~
+
+    void SetClippedPoint(
+        long cell_index,
+        float ratio
+        )
+    {
+        VECTOR_3
+            minimum_position_vector,
+            maximum_position_vector;
+
+        minimum_position_vector.SetFromCellIndex( cell_index, ratio );
+        maximum_position_vector.SetFromCellIndex( cell_index, 1.0 - ratio );
+        PositionVector.Clip( minimum_position_vector, maximum_position_vector );
     }
 
     // ~~
@@ -1078,6 +1132,15 @@ struct CELL
 
     // ~~
 
+    void SetClippedPoint(
+        float ratio
+        )
+    {
+        Point.SetClippedPoint( Index, ratio );
+    }
+
+    // ~~
+
     void SetAveragePoint(
         )
     {
@@ -1173,18 +1236,55 @@ class GRID
         long cell_index
         )
     {
+        long
+            near_cell_index,
+            x_offset,
+            y_offset,
+            z_offset;
         CELL
             cell;
         CELL*
-            found_cell;
+            found_cell,
+            found_near_cell;
 
         found_cell = cell_index in CellMap;
 
         if ( found_cell is null )
         {
             cell.SetEmpty( cell_index );
-            cell.PointCount = 0;
 
+            for ( x_offset = -1;
+                  x_offset <= 1;
+                  ++x_offset )
+            {
+                for ( y_offset = -1;
+                      y_offset <= 1;
+                      ++y_offset )
+                {
+                    for ( z_offset = -1;
+                          z_offset <= 1;
+                          ++z_offset )
+                    {
+                        if ( x_offset != 0
+                             || y_offset != 0
+                             || z_offset != 0 )
+                        {
+                            near_cell_index = GetCellIndex( cell_index, x_offset, y_offset, z_offset );
+                            found_near_cell = near_cell_index in CellMap;
+
+                            if ( found_near_cell !is null
+                                 && found_near_cell.PointCount > 0 )
+                            {
+                                cell.AddCell( *found_near_cell );
+                            }
+                        }
+                    }
+                }
+            }
+
+            cell.SetAveragePoint();
+            cell.SetClippedPoint( 0.01 );
+            cell.PointCount = 0;
             CellMap[ cell_index ] = cell;
         }
     }
@@ -1209,15 +1309,15 @@ class GRID
         foreach ( cell_index; cell_index_array )
         {
             for ( x_offset = -1;
-                  x_offset <= 0;
+                  x_offset <= 1;
                   ++x_offset )
             {
                 for ( y_offset = -1;
-                      y_offset <= 0;
+                      y_offset <= 1;
                       ++y_offset )
                 {
                     for ( z_offset = -1;
-                          z_offset <= 0;
+                          z_offset <= 1;
                           ++z_offset )
                     {
                         if ( x_offset != 0
