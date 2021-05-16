@@ -23,7 +23,7 @@
 import core.stdc.stdlib : exit;
 import std.conv : to;
 import std.file : write;
-import std.math : cos, round, sin, PI;
+import std.math : cos, floor, sin, PI;
 import std.stdio : readln, writeln, File;
 import std.string : format, indexOf, split, startsWith, strip;
 
@@ -1871,9 +1871,9 @@ long GetCellIndex(
 {
     return
         GetCellIndex(
-            ( x * OneOverCellSize ).round().to!long(),
-            ( y * OneOverCellSize ).round().to!long(),
-            ( z * OneOverCellSize ).round().to!long()
+            ( x * OneOverCellSize ).floor().to!long(),
+            ( y * OneOverCellSize ).floor().to!long(),
+            ( z * OneOverCellSize ).floor().to!long()
             );
 }
 
