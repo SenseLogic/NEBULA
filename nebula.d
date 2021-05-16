@@ -23,7 +23,7 @@
 import core.stdc.stdlib : exit;
 import std.conv : to;
 import std.file : write;
-import std.math : cos, floor, sin, PI;
+import std.math : cos, round, sin, PI;
 import std.stdio : readln, writeln, File;
 import std.string : format, indexOf, split, startsWith, strip;
 
@@ -314,19 +314,7 @@ struct VECTOR_3
     long GetCellIndex(
         )
     {
-        long
-            cell_x_index,
-            cell_y_index,
-            cell_z_index;
-
-        cell_x_index = CellBasis + ( X * OneOverCellSize ).floor().to!long();
-        cell_y_index = CellBasis + ( Y * OneOverCellSize ).floor().to!long();
-        cell_z_index = CellBasis + ( Z * OneOverCellSize ).floor().to!long();
-
-        return
-            ( cell_x_index << CellXShift )
-            | ( cell_y_index << CellYShift )
-            | ( cell_z_index << CellZShift );
+        return .GetCellIndex( X, Y, Z );
     }
 
     // -- OPERATIONS
@@ -362,13 +350,14 @@ struct VECTOR_3
 
     // ~~
 
-    void MultiplyVector(
-        ref VECTOR_3 vector
+    void AddScaledVector(
+        ref VECTOR_3 vector,
+        float factor
         )
     {
-        X *= vector.X;
-        Y *= vector.Y;
-        Z *= vector.Z;
+        X += vector.X * factor;
+        Y += vector.Y * factor;
+        Z += vector.Z * factor;
     }
 
     // ~~
@@ -511,18 +500,9 @@ struct VECTOR_3
         float cell_offset
         )
     {
-        long
-            cell_x_index,
-            cell_y_index,
-            cell_z_index;
-
-        cell_x_index = ( cell_index >> CellXShift ) & CellMask;
-        cell_y_index = ( cell_index >> CellYShift ) & CellMask;
-        cell_z_index = ( cell_index >> CellZShift ) & CellMask;
-
-        X = ( ( cell_x_index - CellBasis ).to!float() + cell_offset ) * CellSize;
-        Y = ( ( cell_y_index - CellBasis ).to!float() + cell_offset ) * CellSize;
-        Z = ( ( cell_z_index - CellBasis ).to!float() + cell_offset ) * CellSize;
+        X = ( GetCellXIndex( cell_index ).to!float() + cell_offset ) * CellSize;
+        Y = ( GetCellYIndex( cell_index ).to!float() + cell_offset ) * CellSize;
+        Z = ( GetCellZIndex( cell_index ).to!float() + cell_offset ) * CellSize;
     }
 }
 
@@ -574,18 +554,6 @@ struct VECTOR_4
 
     // ~~
 
-    void MultiplyVector(
-        ref VECTOR_4 vector
-        )
-    {
-        X *= vector.X;
-        Y *= vector.Y;
-        Z *= vector.Z;
-        W *= vector.W;
-    }
-
-    // ~~
-
     void MultiplyScalar(
         float scalar
         )
@@ -607,6 +575,36 @@ struct VECTOR_4
         Y = ( first_vector.Y + second_vector.Y ) * 0.5;
         Z = ( first_vector.Z + second_vector.Z ) * 0.5;
         W = ( first_vector.W + second_vector.W ) * 0.5;
+    }
+
+    // ~~
+
+    void Translate(
+        float x_translation,
+        float y_translation,
+        float z_translation,
+        float w_translation
+        )
+    {
+        X += x_translation;
+        Y += y_translation;
+        Z += z_translation;
+        W += w_translation;
+    }
+
+    // ~~
+
+    void Scale(
+        float x_scaling,
+        float y_scaling,
+        float z_scaling,
+        float w_scaling
+        )
+    {
+        X *= x_scaling;
+        Y *= y_scaling;
+        Z *= z_scaling;
+        W *= w_scaling;
     }
 }
 
@@ -659,57 +657,12 @@ struct POINT
 
     // ~~
 
-    void MultiplyPoint(
-        ref POINT point
-        )
-    {
-        PositionVector.MultiplyVector( point.PositionVector );
-        ColorVector.MultiplyVector( point.ColorVector );
-    }
-
-    // ~~
-
     void MultiplyScalar(
         float factor
         )
     {
         PositionVector.MultiplyScalar( factor );
         ColorVector.MultiplyScalar( factor );
-    }
-
-    // ~~
-
-    void SetFromCellIndex(
-        long cell_index,
-        float offset
-        )
-    {
-        PositionVector.SetFromCellIndex( cell_index, offset );
-    }
-
-    // ~~
-
-    void SetMiddlePoint(
-        long cell_index
-        )
-    {
-        PositionVector.SetFromCellIndex( cell_index, 0.5 );
-    }
-
-    // ~~
-
-    void SetClippedPoint(
-        long cell_index,
-        float ratio
-        )
-    {
-        VECTOR_3
-            minimum_position_vector,
-            maximum_position_vector;
-
-        minimum_position_vector.SetFromCellIndex( cell_index, ratio );
-        maximum_position_vector.SetFromCellIndex( cell_index, 1.0 - ratio );
-        PositionVector.Clip( minimum_position_vector, maximum_position_vector );
     }
 
     // ~~
@@ -721,6 +674,41 @@ struct POINT
     {
         PositionVector.SetAverageVector( first_point.PositionVector, second_point.PositionVector );
         ColorVector.SetAverageVector( first_point.ColorVector, second_point.ColorVector );
+    }
+
+    // ~~
+
+    void SetPositionFromCellIndex(
+        long cell_index,
+        float offset
+        )
+    {
+        PositionVector.SetFromCellIndex( cell_index, offset );
+    }
+
+    // ~~
+
+    void SetCenterPosition(
+        long cell_index
+        )
+    {
+        PositionVector.SetFromCellIndex( cell_index, 0.5 );
+    }
+
+    // ~~
+
+    void SetClippedPosition(
+        long cell_index,
+        float ratio
+        )
+    {
+        VECTOR_3
+            minimum_position_vector,
+            maximum_position_vector;
+
+        minimum_position_vector.SetFromCellIndex( cell_index, ratio );
+        maximum_position_vector.SetFromCellIndex( cell_index, 1.0 - ratio );
+        PositionVector.Clip( minimum_position_vector, maximum_position_vector );
     }
 }
 
@@ -826,9 +814,7 @@ class CLOUD
         long minimum_field_count,
         long maximum_field_count,
         string line_prefix,
-        string line_format,
-        ref POINT factor_point,
-        ref POINT offset_point
+        string line_format
         )
     {
         long
@@ -925,16 +911,69 @@ class CLOUD
                                 {
                                     point.ColorVector.W = field_array[ i_field_index ].to!float();
                                 }
-
-                                point.MultiplyPoint( factor_point );
-                                point.AddPoint( offset_point );
-
-                                AddPoint( point );
                             }
                             catch ( Exception exception )
                             {
                                 Abort( "Can't read line : " ~ line );
                             }
+
+                            point.PositionVector.Translate(
+                                PositionOffsetVector.X,
+                                PositionOffsetVector.Y,
+                                PositionOffsetVector.Z
+                                );
+
+                            point.PositionVector.Scale(
+                                PositionScalingVector.X,
+                                PositionScalingVector.Y,
+                                PositionScalingVector.Z
+                                );
+
+                            if ( PositionRotationVector.Z != 0.0 )
+                            {
+                                point.PositionVector.RotateAroundZ(
+                                    PositionRotationVector.Z.cos(),
+                                    PositionRotationVector.Z.sin()
+                                    );
+                            }
+
+                            if ( PositionRotationVector.X != 0.0 )
+                            {
+                                point.PositionVector.RotateAroundX(
+                                    PositionRotationVector.X.cos(),
+                                    PositionRotationVector.X.sin()
+                                    );
+                            }
+
+                            if ( PositionRotationVector.Y != 0.0 )
+                            {
+                                point.PositionVector.RotateAroundY(
+                                    PositionRotationVector.Y.cos(),
+                                    PositionRotationVector.Y.sin()
+                                    );
+                            }
+
+                            point.PositionVector.Translate(
+                                PositionTranslationVector.X,
+                                PositionTranslationVector.Y,
+                                PositionTranslationVector.Z
+                                );
+
+                            point.ColorVector.Scale(
+                                ColorScalingVector.X,
+                                ColorScalingVector.Y,
+                                ColorScalingVector.Z,
+                                ColorScalingVector.W
+                                );
+
+                            point.ColorVector.Translate(
+                                ColorTranslationVector.X,
+                                ColorTranslationVector.Y,
+                                ColorTranslationVector.Z,
+                                ColorTranslationVector.W
+                                );
+
+                            AddPoint( point );
                         }
                     }
                 }
@@ -951,34 +990,28 @@ class CLOUD
     // ~~
 
     void ReadXyzFile(
-        string file_path,
-        ref POINT factor_point,
-        ref POINT offset_point
+        string file_path
         )
     {
-        ReadFile( file_path, 0, 3, 3, "", "xyz", factor_point, offset_point );
+        ReadFile( file_path, 0, 3, 3, "", "xyz" );
     }
 
     // ~~
 
     void ReadPtsFile(
-        string file_path,
-        ref POINT factor_point,
-        ref POINT offset_point
+        string file_path
         )
     {
-        ReadFile( file_path, 0, 3, 7, "", "xyzirgb", factor_point, offset_point );
+        ReadFile( file_path, 0, 3, 7, "", "xyzirgb" );
     }
 
     // ~~
 
     void ReadObjFile(
-        string file_path,
-        ref POINT factor_point,
-        ref POINT offset_point
+        string file_path
         )
     {
-        ReadFile( file_path, 0, 4, 7, "v ", "_xyzrgb", factor_point, offset_point );
+        ReadFile( file_path, 0, 4, 7, "v ", "_xyzrgb" );
     }
 
     // ~~
@@ -1087,7 +1120,7 @@ struct CELL
     {
         Index = cell_index;
         PointCount = 0;
-        Point.SetMiddlePoint( cell_index );
+        Point.SetCenterPosition( cell_index );
     }
 
     // ~~
@@ -1124,30 +1157,43 @@ struct CELL
 
     // ~~
 
-    void SetMiddlePoint(
-        )
-    {
-        Point.SetMiddlePoint( Index );
-    }
-
-    // ~~
-
-    void SetClippedPoint(
-        float ratio
-        )
-    {
-        Point.SetClippedPoint( Index, ratio );
-    }
-
-    // ~~
-
     void SetAveragePoint(
         )
     {
         if ( PointCount > 1 )
         {
             Point.MultiplyScalar( 1.0 / PointCount.to!float() );
+            PointCount = 1;
         }
+    }
+
+    // ~~
+
+    void SetAveragePosition(
+        )
+    {
+        if ( PointCount > 1 )
+        {
+            Point.PositionVector.MultiplyScalar( 1.0 / PointCount.to!float() );
+            PointCount = 1;
+        }
+    }
+
+    // ~~
+
+    void SetCenterPosition(
+        )
+    {
+        Point.SetCenterPosition( Index );
+    }
+
+    // ~~
+
+    void SetClippedPosition(
+        float ratio
+        )
+    {
+        Point.SetClippedPosition( Index, ratio );
     }
 }
 
@@ -1236,6 +1282,10 @@ class GRID
         long cell_index
         )
     {
+        float
+            cell_position_offset;
+        float[ 3 ]
+            offset_factor_array;
         long
             near_cell_index,
             x_offset,
@@ -1246,21 +1296,34 @@ class GRID
         CELL*
             found_cell,
             found_near_cell;
+        VECTOR_3
+            cell_position_vector,
+            near_cell_position_vector,
+            offset_factor_vector;
+
+        offset_factor_array = [ -1.0, 0.0, 1.0 ];
 
         found_cell = cell_index in CellMap;
 
         if ( found_cell is null )
         {
             cell.SetEmpty( cell_index );
+            cell_position_vector = cell.Point.PositionVector;
+            cell.PointCount = 1;
+            cell_position_offset = CellSize * 0.5;
 
             for ( x_offset = -1;
                   x_offset <= 1;
                   ++x_offset )
             {
+                offset_factor_vector.X = offset_factor_array[ x_offset + 1 ];
+
                 for ( y_offset = -1;
                       y_offset <= 1;
                       ++y_offset )
                 {
+                    offset_factor_vector.Y = offset_factor_array[ y_offset + 1 ];
+
                     for ( z_offset = -1;
                           z_offset <= 1;
                           ++z_offset )
@@ -1269,21 +1332,26 @@ class GRID
                              || y_offset != 0
                              || z_offset != 0 )
                         {
-                            near_cell_index = GetCellIndex( cell_index, x_offset, y_offset, z_offset );
+                            near_cell_index = GetOffsetCellIndex( cell_index, x_offset, y_offset, z_offset );
                             found_near_cell = near_cell_index in CellMap;
 
                             if ( found_near_cell !is null
                                  && found_near_cell.PointCount > 0 )
                             {
-                                cell.AddCell( *found_near_cell );
+                                offset_factor_vector.Z = offset_factor_array[ z_offset + 1 ];
+
+                                near_cell_position_vector = cell_position_vector;
+                                near_cell_position_vector.AddScaledVector( offset_factor_vector, cell_position_offset );
+
+                                cell.Point.PositionVector.AddVector( near_cell_position_vector );
+                                ++cell.PointCount;
                             }
                         }
                     }
                 }
             }
 
-            cell.SetAveragePoint();
-            cell.SetClippedPoint( 0.01 );
+            cell.SetAveragePosition();
             cell.PointCount = 0;
             CellMap[ cell_index ] = cell;
         }
@@ -1324,7 +1392,7 @@ class GRID
                              || y_offset != 0
                              || z_offset != 0 )
                         {
-                            AddEmptyCell( GetCellIndex( cell_index, x_offset, y_offset, z_offset ) );
+                            AddEmptyCell( GetOffsetCellIndex( cell_index, x_offset, y_offset, z_offset ) );
                         }
                     }
                 }
@@ -1623,7 +1691,7 @@ class MESH
                     {
                         grid.GetCell(
                             cube.CellArray[ cube_cell_index ],
-                            GetCellIndex( cell.Index, x_offset, y_offset, z_offset )
+                            GetOffsetCellIndex( cell.Index, x_offset, y_offset, z_offset )
                             );
 
                         ++cube_cell_index;
@@ -1647,9 +1715,14 @@ GRID
     Grid;
 MESH
     Mesh;
-POINT
-    OffsetPoint,
-    FactorPoint;
+VECTOR_3
+    PositionOffsetVector,
+    PositionRotationVector,
+    PositionScalingVector,
+    PositionTranslationVector;
+VECTOR_4
+    ColorScalingVector,
+    ColorTranslationVector;
 
 // -- FUNCTIONS
 
@@ -1777,6 +1850,63 @@ bool IsReal(
 // ~~
 
 long GetCellIndex(
+    long cell_x_index,
+    long cell_y_index,
+    long cell_z_index
+    )
+{
+    return
+        ( ( cell_x_index + CellBasis ) << CellXShift )
+        | ( ( cell_y_index + CellBasis ) << CellYShift )
+        | ( ( cell_z_index + CellBasis ) << CellZShift );
+}
+
+// ~~
+
+long GetCellIndex(
+    float x,
+    float y,
+    float z
+    )
+{
+    return
+        GetCellIndex(
+            ( x * OneOverCellSize ).round().to!long(),
+            ( y * OneOverCellSize ).round().to!long(),
+            ( z * OneOverCellSize ).round().to!long()
+            );
+}
+
+// ~~
+
+long GetCellXIndex(
+    long cell_index
+    )
+{
+    return ( ( cell_index >> CellXShift ) & CellMask ) - CellBasis;
+}
+
+// ~~
+
+long GetCellYIndex(
+    long cell_index
+    )
+{
+    return ( ( cell_index >> CellYShift ) & CellMask ) - CellBasis;
+}
+
+// ~~
+
+long GetCellZIndex(
+    long cell_index
+    )
+{
+    return ( ( cell_index >> CellZShift ) & CellMask ) - CellBasis;
+}
+
+// ~~
+
+long GetOffsetCellIndex(
     long cell_index,
     long x_offset,
     long y_offset,
@@ -1813,7 +1943,7 @@ void ReadCloud(
         Cloud = new CLOUD();
     }
 
-    Cloud.ReadFile( file_path, skipped_line_count, field_count, field_count, line_prefix, line_format, FactorPoint, OffsetPoint );
+    Cloud.ReadFile( file_path, skipped_line_count, field_count, field_count, line_prefix, line_format );
 }
 
 // ~~
@@ -1827,7 +1957,7 @@ void ReadXyzCloud(
         Cloud = new CLOUD();
     }
 
-    Cloud.ReadXyzFile( file_path, FactorPoint, OffsetPoint );
+    Cloud.ReadXyzFile( file_path );
 }
 
 // ~~
@@ -1841,7 +1971,7 @@ void ReadPtsCloud(
         Cloud = new CLOUD();
     }
 
-    Cloud.ReadPtsFile( file_path, FactorPoint, OffsetPoint );
+    Cloud.ReadPtsFile( file_path );
 }
 
 // ~~
@@ -1855,7 +1985,7 @@ void ReadObjCloud(
         Cloud = new CLOUD();
     }
 
-    Cloud.ReadObjFile( file_path, FactorPoint, OffsetPoint );
+    Cloud.ReadObjFile( file_path );
 }
 
 // ~~
@@ -1970,8 +2100,12 @@ void main(
 
     CellSize = 0.01;
     OneOverCellSize = 100.0;
-    FactorPoint.SetUnit();
-    OffsetPoint.SetNull();
+    PositionOffsetVector.SetNull();
+    PositionScalingVector.SetUnit();
+    PositionRotationVector.SetNull();
+    PositionTranslationVector.SetNull();
+    ColorScalingVector.SetUnit();
+    ColorTranslationVector.SetNull();
     Cloud = null;
     Grid = null;
     Mesh = null;
@@ -1984,55 +2118,79 @@ void main(
         option = argument_array[ 0 ];
         argument_array = argument_array[ 1 .. $ ];
 
-        if ( option == "--position-factor"
+        if ( option == "--position-offset"
              && argument_array.length >= 3
              && IsReal( argument_array[ 0 ] )
              && IsReal( argument_array[ 1 ] )
              && IsReal( argument_array[ 2 ] ) )
         {
-            FactorPoint.PositionVector.X = argument_array[ 0 ].to!float();
-            FactorPoint.PositionVector.Y = argument_array[ 1 ].to!float();
-            FactorPoint.PositionVector.Z = argument_array[ 2 ].to!float();
+            PositionOffsetVector.X = argument_array[ 0 ].to!float();
+            PositionOffsetVector.Y = argument_array[ 1 ].to!float();
+            PositionOffsetVector.Z = argument_array[ 2 ].to!float();
 
             argument_array = argument_array[ 3 .. $ ];
         }
-        else if ( option == "--position-offset"
+        else if ( option == "--position-scaling"
                   && argument_array.length >= 3
-             && IsReal( argument_array[ 0 ] )
-             && IsReal( argument_array[ 1 ] )
-             && IsReal( argument_array[ 2 ] ) )
+                  && IsReal( argument_array[ 0 ] )
+                  && IsReal( argument_array[ 1 ] )
+                  && IsReal( argument_array[ 2 ] ) )
         {
-            OffsetPoint.PositionVector.X = argument_array[ 0 ].to!float();
-            OffsetPoint.PositionVector.Y = argument_array[ 1 ].to!float();
-            OffsetPoint.PositionVector.Z = argument_array[ 2 ].to!float();
+            PositionScalingVector.X = argument_array[ 0 ].to!float();
+            PositionScalingVector.Y = argument_array[ 1 ].to!float();
+            PositionScalingVector.Z = argument_array[ 2 ].to!float();
 
             argument_array = argument_array[ 3 .. $ ];
         }
-        else if ( option == "--color-factor"
+        else if ( option == "--position-rotation"
+                  && argument_array.length >= 3
+                  && IsReal( argument_array[ 0 ] )
+                  && IsReal( argument_array[ 1 ] )
+                  && IsReal( argument_array[ 2 ] ) )
+        {
+            PositionRotationVector.X = argument_array[ 0 ].to!float() * DegreeToRadianFactor;
+            PositionRotationVector.Y = argument_array[ 1 ].to!float() * DegreeToRadianFactor;
+            PositionRotationVector.Z = argument_array[ 2 ].to!float() * DegreeToRadianFactor;
+
+            argument_array = argument_array[ 3 .. $ ];
+        }
+        else if ( option == "--position-translation"
+                  && argument_array.length >= 3
+                  && IsReal( argument_array[ 0 ] )
+                  && IsReal( argument_array[ 1 ] )
+                  && IsReal( argument_array[ 2 ] ) )
+        {
+            PositionTranslationVector.X = argument_array[ 0 ].to!float();
+            PositionTranslationVector.Y = argument_array[ 1 ].to!float();
+            PositionTranslationVector.Z = argument_array[ 2 ].to!float();
+
+            argument_array = argument_array[ 3 .. $ ];
+        }
+        else if ( option == "--color-scaling"
                   && argument_array.length >= 4
                   && IsReal( argument_array[ 0 ] )
                   && IsReal( argument_array[ 1 ] )
                   && IsReal( argument_array[ 2 ] )
                   && IsReal( argument_array[ 3 ] ) )
         {
-            FactorPoint.ColorVector.X = argument_array[ 0 ].to!float();
-            FactorPoint.ColorVector.Y = argument_array[ 1 ].to!float();
-            FactorPoint.ColorVector.Z = argument_array[ 2 ].to!float();
-            FactorPoint.ColorVector.W = argument_array[ 3 ].to!float();
+            ColorScalingVector.X = argument_array[ 0 ].to!float();
+            ColorScalingVector.Y = argument_array[ 1 ].to!float();
+            ColorScalingVector.Z = argument_array[ 2 ].to!float();
+            ColorScalingVector.W = argument_array[ 3 ].to!float();
 
             argument_array = argument_array[ 3 .. $ ];
         }
-        else if ( option == "--color-offset"
+        else if ( option == "--color-translation"
                   && argument_array.length >= 4
                   && IsReal( argument_array[ 0 ] )
                   && IsReal( argument_array[ 1 ] )
                   && IsReal( argument_array[ 2 ] )
                   && IsReal( argument_array[ 3 ] ) )
         {
-            OffsetPoint.ColorVector.X = argument_array[ 0 ].to!float();
-            OffsetPoint.ColorVector.Y = argument_array[ 1 ].to!float();
-            OffsetPoint.ColorVector.Z = argument_array[ 2 ].to!float();
-            OffsetPoint.ColorVector.W = argument_array[ 3 ].to!float();
+            ColorTranslationVector.X = argument_array[ 0 ].to!float();
+            ColorTranslationVector.Y = argument_array[ 1 ].to!float();
+            ColorTranslationVector.Z = argument_array[ 2 ].to!float();
+            ColorTranslationVector.W = argument_array[ 3 ].to!float();
 
             argument_array = argument_array[ 3 .. $ ];
         }
@@ -2182,10 +2340,11 @@ void main(
         writeln( "Usage :" );
         writeln( "    nebula <options>" );
         writeln( "Options :" );
-        writeln( "    --position-factor <x> <y> <z>" );
-        writeln( "    --position-offset <x> <y> <z>" );
-        writeln( "    --color-factor <r> <g> <b> <i>" );
-        writeln( "    --color-offset <r> <g> <b> <i>" );
+        writeln( "    --position-scaling <x> <y> <z>" );
+        writeln( "    --position-rotation <x> <y> <z>" );
+        writeln( "    --position-translation <x> <y> <z>" );
+        writeln( "    --color-scaling <r> <g> <b> <i>" );
+        writeln( "    --color-translation <r> <g> <b> <i>" );
         writeln( "    --read <file path> <skipped line count> <field count> <line prefix> <line format>" );
         writeln( "    --read-xyz <file path>" );
         writeln( "    --read-pts <file path>" );
@@ -2203,8 +2362,9 @@ void main(
         writeln( "Examples :" );
         writeln( "    nebula --read-pts cloud.pts --write-xyz cloud.xyz" );
         writeln( "    nebula --read-pts cloud.pts --scale 2 2 2 --rotate-z 45 --write-pts scaled_cloud.pts" );
+        writeln( "    nebula --read-xyz cloud.xyz --position-scaling 2 2 2 --read-xyz cloud.xyz --write-xyz merged_clouds.xyz" );
         writeln( "    nebula --read-pts cloud.pts --decimate 0.01 --write-pts decimated_cloud.pts" );
-        writeln( "    nebula --read-pts cloud.pts --triangulate 0.01 --write-obj triangulated_mesh.obj" );
+        writeln( "    nebula --read-pts cloud.pts --triangulate 0.01 --write-obj triangulated_cloud.obj" );
         Abort( "Invalid arguments : " ~ argument_array.to!string() );
     }
 }

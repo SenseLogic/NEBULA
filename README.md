@@ -23,10 +23,12 @@ nebula <options>
 ### Options
 
 ```bash
---position-factor <x> <y> <z> : set the position factor
---position-offset <x> <y> <z> : set the position offset
---color-factor <r> <g> <b> <i> : set the color factor
---color-offset <r> <g> <b> <i> : set the color offset
+--position-offset <x> <y> <z> : set the loading position offset
+--position-scaling <x> <y> <z> : set the loading position scaling
+--position-rotation <x> <y> <z> : set the loading position rotation
+--position-translation <x> <y> <z> : set the loading position translation
+--color-scaling <r> <g> <b> <i> : set the loading color scaling
+--color-translation <r> <g> <b> <i> : set the loading color translation
 --read <file path> <skipped line count> <field count> <line prefix> <line format> : read a point cloud
 --read-xyz <file path> : read an XYZ point cloud
 --read-pts <file path> : read a PTS point cloud
@@ -48,8 +50,9 @@ nebula <options>
 ```bash
 nebula --read-pts cloud.pts --write-xyz cloud.xyz
 nebula --read-pts cloud.pts --scale 2 2 2 --rotate-z 45 --write-pts scaled_cloud.pts
+nebula --read-xyz cloud.xyz --position-scaling 2 2 2 --read-xyz cloud.xyz --write-xyz merged_clouds.xyz
 nebula --read-pts cloud.pts --decimate 0.01 --write-pts decimated_cloud.pts
-nebula --read-pts cloud.pts --triangulate 0.01 --write-obj triangulated_mesh.obj
+nebula --read-pts cloud.pts --triangulate 0.01 --write-obj triangulated_cloud.obj
 ```
 
 ![](https://github.com/senselogic/NEBULA/blob/master/SCREENSHOT/cloud.png)
