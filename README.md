@@ -27,6 +27,7 @@ nebula <options>
 --position-scaling <x> <y> <z> : set the loading position scaling
 --position-rotation <x> <y> <z> : set the loading position rotation
 --position-translation <x> <y> <z> : set the loading position translation
+--color-offset <r> <g> <b> <i> : set the loading color offset
 --color-scaling <r> <g> <b> <i> : set the loading color scaling
 --color-translation <r> <g> <b> <i> : set the loading color translation
 --read <file path> <skipped line count> <field count> <line prefix> <line format> : read a point cloud

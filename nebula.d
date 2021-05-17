@@ -959,6 +959,13 @@ class CLOUD
                                 PositionTranslationVector.Z
                                 );
 
+                            point.ColorVector.Translate(
+                                ColorOffsetVector.X,
+                                ColorOffsetVector.Y,
+                                ColorOffsetVector.Z,
+                                ColorOffsetVector.W
+                                );
+
                             point.ColorVector.Scale(
                                 ColorScalingVector.X,
                                 ColorScalingVector.Y,
@@ -1721,6 +1728,7 @@ VECTOR_3
     PositionScalingVector,
     PositionTranslationVector;
 VECTOR_4
+    ColorOffsetVector,
     ColorScalingVector,
     ColorTranslationVector;
 
@@ -2104,6 +2112,7 @@ void main(
     PositionScalingVector.SetUnit();
     PositionRotationVector.SetNull();
     PositionTranslationVector.SetNull();
+    ColorOffsetVector.SetNull();
     ColorScalingVector.SetUnit();
     ColorTranslationVector.SetNull();
     Cloud = null;
@@ -2163,6 +2172,20 @@ void main(
             PositionTranslationVector.X = argument_array[ 0 ].to!float();
             PositionTranslationVector.Y = argument_array[ 1 ].to!float();
             PositionTranslationVector.Z = argument_array[ 2 ].to!float();
+
+            argument_array = argument_array[ 3 .. $ ];
+        }
+        else if ( option == "--color-offset"
+                  && argument_array.length >= 4
+                  && IsReal( argument_array[ 0 ] )
+                  && IsReal( argument_array[ 1 ] )
+                  && IsReal( argument_array[ 2 ] )
+                  && IsReal( argument_array[ 3 ] ) )
+        {
+            ColorOffsetVector.X = argument_array[ 0 ].to!float();
+            ColorOffsetVector.Y = argument_array[ 1 ].to!float();
+            ColorOffsetVector.Z = argument_array[ 2 ].to!float();
+            ColorOffsetVector.W = argument_array[ 3 ].to!float();
 
             argument_array = argument_array[ 3 .. $ ];
         }
@@ -2343,6 +2366,7 @@ void main(
         writeln( "    --position-scaling <x> <y> <z>" );
         writeln( "    --position-rotation <x> <y> <z>" );
         writeln( "    --position-translation <x> <y> <z>" );
+        writeln( "    --color-offset <r> <g> <b> <i>" );
         writeln( "    --color-scaling <r> <g> <b> <i>" );
         writeln( "    --color-translation <r> <g> <b> <i>" );
         writeln( "    --read <file path> <skipped line count> <field count> <line prefix> <line format>" );
