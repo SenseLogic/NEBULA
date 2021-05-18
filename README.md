@@ -30,17 +30,16 @@ nebula <options>
 --color-offset <r> <g> <b> <i> : set the loading color offset
 --color-scaling <r> <g> <b> <i> : set the loading color scaling
 --color-translation <r> <g> <b> <i> : set the loading color translation
---read <file path> <skipped line count> <field count> <line prefix> <line format> : read a point cloud
---read-xyz <file path> : read an XYZ point cloud
---read-pts <file path> : read a PTS point cloud
---read-obj <file path> : read an OBJ point cloud
+--read <file path> <precision> <skipped line count> <minimum field count> <maximum field count> <line prefix> <line format> : read a point cloud
+--read-xyz <file path> <precision> : read an XYZ point cloud
+--read-pts <file path> <precision> : read a PTS point cloud
+--read-obj <file path> <precision> : read an OBJ point cloud
 --translate <x> <y> <z> : translate the point cloud
 --scale <x> <y> <z> : translate the point cloud
 --rotate-x <degree angle> : rotate the point cloud around the X axis
 --rotate-y <degree angle> : rotate the point cloud around the Y axis
 --rotate-z <degree angle> : rotate the point cloud around the Z axis
 --decimate <precision> : decimate the point cloud
---triangulate <precision> : triangulate the point cloud
 --write-xyz <file path> : write an XYZ point cloud
 --write-pts <file path> : write a PTS point cloud
 --write-obj <file path> : write an OBJ mesh
@@ -49,11 +48,11 @@ nebula <options>
 ## Examples
 
 ```bash
-nebula --read-pts cloud.pts --write-xyz cloud.xyz
-nebula --read-pts cloud.pts --scale 2 2 2 --rotate-z 45 --write-pts scaled_cloud.pts
-nebula --read-xyz cloud.xyz --position-scaling 2 2 2 --read-xyz cloud.xyz --write-xyz merged_clouds.xyz
-nebula --read-pts cloud.pts --decimate 0.01 --write-pts decimated_cloud.pts
-nebula --read-pts cloud.pts --triangulate 0.01 --write-obj triangulated_cloud.obj
+nebula --read-pts cloud.pts 0.0 --write-xyz cloud.xyz
+nebula --read-pts cloud.pts 0.0 --scale 2 2 2 --rotate-z 45 --write-pts scaled_cloud.pts
+nebula --read-xyz cloud.xyz 0.0 --position-scaling 2 2 2 --read-xyz cloud.xyz --write-xyz merged_clouds.xyz
+nebula --read-pts cloud.pts 0.01 --write-pts decimated_cloud.pts
+nebula --read-pts cloud.pts 0.01 --write-obj triangulated_cloud.obj
 ```
 
 ![](https://github.com/senselogic/NEBULA/blob/master/SCREENSHOT/cloud.png)

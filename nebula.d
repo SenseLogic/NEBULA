@@ -312,9 +312,10 @@ struct VECTOR_3
     // -- INQUIRIES
 
     long GetCellIndex(
+        float one_over_precision
         )
     {
-        return .GetCellIndex( X, Y, Z );
+        return .GetCellIndex( X, Y, Z, one_over_precision );
     }
 
     // -- OPERATIONS
@@ -497,12 +498,13 @@ struct VECTOR_3
 
     void SetFromCellIndex(
         long cell_index,
-        float cell_offset
+        float cell_offset,
+        float precision
         )
     {
-        X = ( GetCellXIndex( cell_index ).to!float() + cell_offset ) * CellSize;
-        Y = ( GetCellYIndex( cell_index ).to!float() + cell_offset ) * CellSize;
-        Z = ( GetCellZIndex( cell_index ).to!float() + cell_offset ) * CellSize;
+        X = ( GetCellXIndex( cell_index ).to!float() + cell_offset ) * precision;
+        Y = ( GetCellYIndex( cell_index ).to!float() + cell_offset ) * precision;
+        Z = ( GetCellZIndex( cell_index ).to!float() + cell_offset ) * precision;
     }
 }
 
@@ -622,9 +624,10 @@ struct POINT
     // -- INQUIRIES
 
     long GetCellIndex(
+        float one_over_precision
         )
     {
-        return PositionVector.GetCellIndex();
+        return PositionVector.GetCellIndex( one_over_precision );
     }
 
     // -- OPERATIONS
@@ -680,34 +683,37 @@ struct POINT
 
     void SetPositionFromCellIndex(
         long cell_index,
-        float offset
+        float offset,
+        float precision
         )
     {
-        PositionVector.SetFromCellIndex( cell_index, offset );
+        PositionVector.SetFromCellIndex( cell_index, offset, precision );
     }
 
     // ~~
 
     void SetCenterPosition(
-        long cell_index
+        long cell_index,
+        float precision
         )
     {
-        PositionVector.SetFromCellIndex( cell_index, 0.0 );
+        PositionVector.SetFromCellIndex( cell_index, 0.0, precision );
     }
 
     // ~~
 
     void SetClippedPosition(
         long cell_index,
-        float ratio
+        float ratio,
+        float precision
         )
     {
         VECTOR_3
             minimum_position_vector,
             maximum_position_vector;
 
-        minimum_position_vector.SetFromCellIndex( cell_index, ratio );
-        maximum_position_vector.SetFromCellIndex( cell_index, 1.0 - ratio );
+        minimum_position_vector.SetFromCellIndex( cell_index, ratio, precision );
+        maximum_position_vector.SetFromCellIndex( cell_index, 1.0 - ratio, precision );
         PositionVector.Clip( minimum_position_vector, maximum_position_vector );
     }
 }
@@ -804,221 +810,6 @@ class CLOUD
         )
     {
         PointArray ~= point;
-    }
-
-    // ~~
-
-    void ReadFile(
-        string file_path,
-        long skipped_line_count,
-        long minimum_field_count,
-        long maximum_field_count,
-        string line_prefix,
-        string line_format
-        )
-    {
-        long
-            b_field_index,
-            i_field_index,
-            g_field_index,
-            r_field_index,
-            x_field_index,
-            y_field_index,
-            z_field_index;
-        string
-            line;
-        string[]
-            field_array;
-        File
-            file;
-        POINT
-            point;
-
-        x_field_index = line_format.indexOf( 'x' );
-        y_field_index = line_format.indexOf( 'y' );
-        z_field_index = line_format.indexOf( 'z' );
-        r_field_index = line_format.indexOf( 'r' );
-        g_field_index = line_format.indexOf( 'g' );
-        b_field_index = line_format.indexOf( 'b' );
-        i_field_index = line_format.indexOf( 'i' );
-
-        writeln( "Reading file : ", file_path );
-
-        try
-        {
-            file.open( file_path, "r" );
-
-            foreach ( file_line; file.byLine() )
-            {
-                if ( skipped_line_count > 0 )
-                {
-                    --skipped_line_count;
-                }
-                else
-                {
-                    line = file_line.to!string().strip();
-
-                    if ( line_prefix.length == 0
-                         || line.startsWith( line_prefix ) )
-                    {
-                        field_array = line.split( ' ' );
-
-                        if ( field_array.length >= minimum_field_count
-                             && field_array.length <= maximum_field_count )
-                        {
-                            point.SetNull();
-
-                            try
-                            {
-                                if ( x_field_index >= 0
-                                     && x_field_index < field_array.length )
-                                {
-                                    point.PositionVector.X = field_array[ x_field_index ].to!float();
-                                }
-
-                                if ( y_field_index >= 0
-                                     && y_field_index < field_array.length )
-                                {
-                                    point.PositionVector.Y = field_array[ y_field_index ].to!float();
-                                }
-
-                                if ( z_field_index >= 0
-                                     && z_field_index < field_array.length )
-                                {
-                                    point.PositionVector.Z = field_array[ z_field_index ].to!float();
-                                }
-
-                                if ( r_field_index >= 0
-                                     && r_field_index < field_array.length )
-                                {
-                                    point.ColorVector.X = field_array[ r_field_index ].to!float();
-                                }
-
-                                if ( g_field_index >= 0
-                                     && g_field_index < field_array.length )
-                                {
-                                    point.ColorVector.Y = field_array[ g_field_index ].to!float();
-                                }
-
-                                if ( b_field_index >= 0
-                                     && b_field_index < field_array.length )
-                                {
-                                    point.ColorVector.Z = field_array[ b_field_index ].to!float();
-                                }
-
-                                if ( i_field_index >= 0
-                                     && i_field_index < field_array.length )
-                                {
-                                    point.ColorVector.W = field_array[ i_field_index ].to!float();
-                                }
-                            }
-                            catch ( Exception exception )
-                            {
-                                Abort( "Can't read line : " ~ line );
-                            }
-
-                            point.PositionVector.Translate(
-                                PositionOffsetVector.X,
-                                PositionOffsetVector.Y,
-                                PositionOffsetVector.Z
-                                );
-
-                            point.PositionVector.Scale(
-                                PositionScalingVector.X,
-                                PositionScalingVector.Y,
-                                PositionScalingVector.Z
-                                );
-
-                            if ( PositionRotationVector.Z != 0.0 )
-                            {
-                                point.PositionVector.RotateAroundZ(
-                                    PositionRotationVector.Z.cos(),
-                                    PositionRotationVector.Z.sin()
-                                    );
-                            }
-
-                            if ( PositionRotationVector.X != 0.0 )
-                            {
-                                point.PositionVector.RotateAroundX(
-                                    PositionRotationVector.X.cos(),
-                                    PositionRotationVector.X.sin()
-                                    );
-                            }
-
-                            if ( PositionRotationVector.Y != 0.0 )
-                            {
-                                point.PositionVector.RotateAroundY(
-                                    PositionRotationVector.Y.cos(),
-                                    PositionRotationVector.Y.sin()
-                                    );
-                            }
-
-                            point.PositionVector.Translate(
-                                PositionTranslationVector.X,
-                                PositionTranslationVector.Y,
-                                PositionTranslationVector.Z
-                                );
-
-                            point.ColorVector.Translate(
-                                ColorOffsetVector.X,
-                                ColorOffsetVector.Y,
-                                ColorOffsetVector.Z,
-                                ColorOffsetVector.W
-                                );
-
-                            point.ColorVector.Scale(
-                                ColorScalingVector.X,
-                                ColorScalingVector.Y,
-                                ColorScalingVector.Z,
-                                ColorScalingVector.W
-                                );
-
-                            point.ColorVector.Translate(
-                                ColorTranslationVector.X,
-                                ColorTranslationVector.Y,
-                                ColorTranslationVector.Z,
-                                ColorTranslationVector.W
-                                );
-
-                            AddPoint( point );
-                        }
-                    }
-                }
-            }
-
-            file.close();
-        }
-        catch ( Exception exception )
-        {
-            Abort( "Can't read file : " ~ file_path, exception );
-        }
-    }
-
-    // ~~
-
-    void ReadXyzFile(
-        string file_path
-        )
-    {
-        ReadFile( file_path, 0, 3, 3, "", "xyz" );
-    }
-
-    // ~~
-
-    void ReadPtsFile(
-        string file_path
-        )
-    {
-        ReadFile( file_path, 0, 3, 7, "", "xyzirgb" );
-    }
-
-    // ~~
-
-    void ReadObjFile(
-        string file_path
-        )
-    {
-        ReadFile( file_path, 0, 4, 7, "v ", "_xyzrgb" );
     }
 
     // ~~
@@ -1122,12 +913,13 @@ struct CELL
     // -- OPERATIONS
 
     void SetEmpty(
-        long cell_index
+        long cell_index,
+        float precision
         )
     {
         Index = cell_index;
         PointCount = 0;
-        Point.SetCenterPosition( cell_index );
+        Point.SetCenterPosition( cell_index, precision );
     }
 
     // ~~
@@ -1189,18 +981,20 @@ struct CELL
     // ~~
 
     void SetCenterPosition(
+        float precision
         )
     {
-        Point.SetCenterPosition( Index );
+        Point.SetCenterPosition( Index, precision );
     }
 
     // ~~
 
     void SetClippedPosition(
-        float ratio
+        float ratio,
+        float precision
         )
     {
-        Point.SetClippedPosition( Index, ratio );
+        Point.SetClippedPosition( Index, ratio, precision );
     }
 }
 
@@ -1210,8 +1004,21 @@ class GRID
 {
     // -- ATTRIBUTES
 
+    float
+        Precision,
+        OneOverPrecision;
     CELL[ long ]
         CellMap;
+
+    // -- CONSTRUCTORS
+
+    this(
+        float precision
+        )
+    {
+        Precision = precision;
+        OneOverPrecision = 1.0f / precision;
+    }
 
     // -- INQUIRIES
 
@@ -1231,7 +1038,7 @@ class GRID
         }
         else
         {
-            cell.SetEmpty( cell_index );
+            cell.SetEmpty( cell_index, Precision );
         }
     }
 
@@ -1269,7 +1076,7 @@ class GRID
         CELL*
             found_cell;
 
-        cell_index = point.GetCellIndex();
+        cell_index = point.GetCellIndex( OneOverPrecision );
         found_cell = cell_index in CellMap;
 
         if ( found_cell is null )
@@ -1280,6 +1087,17 @@ class GRID
         else
         {
             found_cell.AddPoint( point );
+        }
+    }
+
+    // ~~
+
+    void SetAveragePoint(
+        )
+    {
+        foreach ( cell_index, ref cell; CellMap )
+        {
+            cell.SetAveragePoint();
         }
     }
 
@@ -1314,10 +1132,10 @@ class GRID
 
         if ( found_cell is null )
         {
-            cell.SetEmpty( cell_index );
+            cell.SetEmpty( cell_index, Precision );
             cell_position_vector = cell.Point.PositionVector;
             cell.PointCount = 1;
-            cell_position_offset = CellSize * 0.5;
+            cell_position_offset = Precision * 0.5;
 
             for ( x_offset = -1;
                   x_offset <= 1;
@@ -1418,12 +1236,7 @@ class GRID
             AddPoint( point );
         }
 
-        foreach ( cell_index, ref cell; CellMap )
-        {
-            cell.SetAveragePoint();
-        }
-
-        AddEmptyCells();
+        SetAveragePoint();
     }
 }
 
@@ -1535,7 +1348,7 @@ class MESH
 
     void WriteObjFile(
         string file_path,
-        bool has_color
+        bool point_has_color
         )
     {
         long
@@ -1549,7 +1362,7 @@ class MESH
         {
             file.open( file_path, "w" );
 
-            if ( has_color )
+            if ( point_has_color )
             {
                 foreach ( ref point; PointArray )
                 {
@@ -1680,6 +1493,8 @@ class MESH
         CUBE
             cube;
 
+        grid.AddEmptyCells();
+
         foreach ( ref cell; grid.CellMap )
         {
             cube_cell_index = 0;
@@ -1714,8 +1529,7 @@ class MESH
 // -- VARIABLES
 
 float
-    CellSize,
-    OneOverCellSize;
+    Precision;
 CLOUD
     Cloud;
 GRID
@@ -1874,14 +1688,15 @@ long GetCellIndex(
 long GetCellIndex(
     float x,
     float y,
-    float z
+    float z,
+    float one_over_precision
     )
 {
     return
         GetCellIndex(
-            ( x * OneOverCellSize ).round().to!long(),
-            ( y * OneOverCellSize ).round().to!long(),
-            ( z * OneOverCellSize ).round().to!long()
+            ( x * one_over_precision ).round().to!long(),
+            ( y * one_over_precision ).round().to!long(),
+            ( z * one_over_precision ).round().to!long()
             );
 }
 
@@ -1938,62 +1753,338 @@ long GetOffsetCellIndex(
 
 // ~~
 
-void ReadCloud(
+void SetPrecision(
+    float precision
+    )
+{
+    Precision = precision;
+}
+
+// ~~
+
+bool HasCloud(
+    )
+{
+    if ( Cloud is null )
+    {
+        if ( Grid !is null )
+        {
+            Cloud = Grid.GetCloud();
+        }
+        else if ( Mesh !is null )
+        {
+            Cloud = Mesh.GetCloud();
+        }
+    }
+
+    Grid = null;
+    Mesh = null;
+
+    return Cloud !is null;
+}
+
+// ~~
+
+bool HasGrid(
+    )
+{
+    if ( Grid is null
+         && Precision != 0.0
+         && HasCloud() )
+    {
+        Grid = new GRID( Precision );
+        Grid.SetFromCloud( Cloud );
+    }
+
+    Cloud = null;
+    Mesh = null;
+
+    return Grid !is null;
+}
+
+// ~~
+
+bool HasMesh(
+    )
+{
+    if ( Mesh is null
+         && HasGrid() )
+    {
+        Mesh = new MESH();
+        Mesh.SetFromGrid( Grid );
+    }
+
+    Cloud = null;
+    Grid = null;
+
+    return Mesh !is null;
+}
+
+// ~~
+
+void AddPoint(
+    ref POINT point
+    )
+{
+    if ( Cloud !is null )
+    {
+        Cloud.AddPoint( point );
+    }
+    else if ( Grid !is null )
+    {
+        Grid.AddPoint( point );
+    }
+}
+
+// ~~
+
+void ReadFile(
     string file_path,
+    float precision,
     long skipped_line_count,
-    long field_count,
+    long minimum_field_count,
+    long maximum_field_count,
     string line_prefix,
     string line_format
     )
 {
-    if ( Cloud is null )
+    long
+        b_field_index,
+        i_field_index,
+        g_field_index,
+        r_field_index,
+        x_field_index,
+        y_field_index,
+        z_field_index;
+    string
+        line;
+    string[]
+        field_array;
+    File
+        file;
+    POINT
+        point;
+
+    if ( precision == 0.0 )
     {
-        Cloud = new CLOUD();
+        if ( !HasCloud() )
+        {
+            Cloud = new CLOUD();
+        }
+
+        SetPrecision( precision );
+    }
+    else
+    {
+        if ( Grid !is null
+             && Grid.Precision != precision )
+        {
+            Cloud = Grid.GetCloud();
+            Grid = null;
+            Mesh = null;
+        }
+
+        SetPrecision( precision );
+
+        if ( !HasGrid() )
+        {
+            Grid = new GRID( precision );
+        }
     }
 
-    Cloud.ReadFile( file_path, skipped_line_count, field_count, field_count, line_prefix, line_format );
+    x_field_index = line_format.indexOf( 'x' );
+    y_field_index = line_format.indexOf( 'y' );
+    z_field_index = line_format.indexOf( 'z' );
+    r_field_index = line_format.indexOf( 'r' );
+    g_field_index = line_format.indexOf( 'g' );
+    b_field_index = line_format.indexOf( 'b' );
+    i_field_index = line_format.indexOf( 'i' );
+
+    writeln( "Reading file : ", file_path );
+
+    try
+    {
+        file.open( file_path, "r" );
+
+        foreach ( file_line; file.byLine() )
+        {
+            if ( skipped_line_count > 0 )
+            {
+                --skipped_line_count;
+            }
+            else
+            {
+                line = file_line.to!string().strip();
+
+                if ( line_prefix.length == 0
+                     || line.startsWith( line_prefix ) )
+                {
+                    field_array = line.split( ' ' );
+
+                    if ( field_array.length >= minimum_field_count
+                         && field_array.length <= maximum_field_count )
+                    {
+                        point.SetNull();
+
+                        try
+                        {
+                            if ( x_field_index >= 0
+                                 && x_field_index < field_array.length )
+                            {
+                                point.PositionVector.X = field_array[ x_field_index ].to!float();
+                            }
+
+                            if ( y_field_index >= 0
+                                 && y_field_index < field_array.length )
+                            {
+                                point.PositionVector.Y = field_array[ y_field_index ].to!float();
+                            }
+
+                            if ( z_field_index >= 0
+                                 && z_field_index < field_array.length )
+                            {
+                                point.PositionVector.Z = field_array[ z_field_index ].to!float();
+                            }
+
+                            if ( r_field_index >= 0
+                                 && r_field_index < field_array.length )
+                            {
+                                point.ColorVector.X = field_array[ r_field_index ].to!float();
+                            }
+
+                            if ( g_field_index >= 0
+                                 && g_field_index < field_array.length )
+                            {
+                                point.ColorVector.Y = field_array[ g_field_index ].to!float();
+                            }
+
+                            if ( b_field_index >= 0
+                                 && b_field_index < field_array.length )
+                            {
+                                point.ColorVector.Z = field_array[ b_field_index ].to!float();
+                            }
+
+                            if ( i_field_index >= 0
+                                 && i_field_index < field_array.length )
+                            {
+                                point.ColorVector.W = field_array[ i_field_index ].to!float();
+                            }
+                        }
+                        catch ( Exception exception )
+                        {
+                            Abort( "Can't read line : " ~ line );
+                        }
+
+                        point.PositionVector.Translate(
+                            PositionOffsetVector.X,
+                            PositionOffsetVector.Y,
+                            PositionOffsetVector.Z
+                            );
+
+                        point.PositionVector.Scale(
+                            PositionScalingVector.X,
+                            PositionScalingVector.Y,
+                            PositionScalingVector.Z
+                            );
+
+                        if ( PositionRotationVector.Z != 0.0 )
+                        {
+                            point.PositionVector.RotateAroundZ(
+                                PositionRotationVector.Z.cos(),
+                                PositionRotationVector.Z.sin()
+                                );
+                        }
+
+                        if ( PositionRotationVector.X != 0.0 )
+                        {
+                            point.PositionVector.RotateAroundX(
+                                PositionRotationVector.X.cos(),
+                                PositionRotationVector.X.sin()
+                                );
+                        }
+
+                        if ( PositionRotationVector.Y != 0.0 )
+                        {
+                            point.PositionVector.RotateAroundY(
+                                PositionRotationVector.Y.cos(),
+                                PositionRotationVector.Y.sin()
+                                );
+                        }
+
+                        point.PositionVector.Translate(
+                            PositionTranslationVector.X,
+                            PositionTranslationVector.Y,
+                            PositionTranslationVector.Z
+                            );
+
+                        point.ColorVector.Translate(
+                            ColorOffsetVector.X,
+                            ColorOffsetVector.Y,
+                            ColorOffsetVector.Z,
+                            ColorOffsetVector.W
+                            );
+
+                        point.ColorVector.Scale(
+                            ColorScalingVector.X,
+                            ColorScalingVector.Y,
+                            ColorScalingVector.Z,
+                            ColorScalingVector.W
+                            );
+
+                        point.ColorVector.Translate(
+                            ColorTranslationVector.X,
+                            ColorTranslationVector.Y,
+                            ColorTranslationVector.Z,
+                            ColorTranslationVector.W
+                            );
+
+                        AddPoint( point );
+                    }
+                }
+            }
+        }
+
+        if ( Grid !is null )
+        {
+            Grid.SetAveragePoint();
+        }
+
+        file.close();
+    }
+    catch ( Exception exception )
+    {
+        Abort( "Can't read file : " ~ file_path, exception );
+    }
 }
 
 // ~~
 
-void ReadXyzCloud(
-    string file_path
+void ReadXyzFile(
+    string file_path,
+    float precision
     )
 {
-    if ( Cloud is null )
-    {
-        Cloud = new CLOUD();
-    }
-
-    Cloud.ReadXyzFile( file_path );
+    ReadFile( file_path, precision, 0, 3, 3, "", "xyz" );
 }
 
 // ~~
 
-void ReadPtsCloud(
-    string file_path
+void ReadPtsFile(
+    string file_path,
+    float precision
     )
 {
-    if ( Cloud is null )
-    {
-        Cloud = new CLOUD();
-    }
-
-    Cloud.ReadPtsFile( file_path );
+    ReadFile( file_path, precision, 0, 3, 7, "", "xyzirgb" );
 }
 
 // ~~
 
-void ReadObjCloud(
-    string file_path
+void ReadObjFile(
+    string file_path,
+    float precision
     )
 {
-    if ( Cloud is null )
-    {
-        Cloud = new CLOUD();
-    }
-
-    Cloud.ReadObjFile( file_path );
+    ReadFile( file_path, precision, 0, 4, 7, "v ", "_xyzrgb" );
 }
 
 // ~~
@@ -2051,28 +2142,15 @@ void DecimateCloud(
     float precision
     )
 {
-    CellSize = precision;
-    OneOverCellSize = 1.0 / precision;
-    Grid = new GRID();
+    SetPrecision( precision );
+    Grid = new GRID( precision );
     Grid.SetFromCloud( Cloud );
-    Cloud = Grid.GetCloud();
+    Cloud = null;
 }
 
 // ~~
 
-void TriangulateCloud(
-    float precision
-    )
-{
-    DecimateCloud( precision );
-    Mesh = new MESH();
-    Mesh.SetFromGrid( Grid );
-    Cloud = Mesh.GetCloud();
-}
-
-// ~~
-
-void WriteXyzCloud(
+void WriteXyzFile(
     string file_path
     )
 {
@@ -2081,7 +2159,7 @@ void WriteXyzCloud(
 
 // ~~
 
-void WritePtsCloud(
+void WritePtsFile(
     string file_path
     )
 {
@@ -2090,7 +2168,7 @@ void WritePtsCloud(
 
 // ~~
 
-void WriteObjMesh(
+void WriteObjFile(
     string file_path
     )
 {
@@ -2106,8 +2184,7 @@ void main(
     string
         option;
 
-    CellSize = 0.01;
-    OneOverCellSize = 100.0;
+    SetPrecision( 0.01 );
     PositionOffsetVector.SetNull();
     PositionScalingVector.SetUnit();
     PositionRotationVector.SetNull();
@@ -2218,47 +2295,63 @@ void main(
             argument_array = argument_array[ 3 .. $ ];
         }
         else if ( option == "--read"
-                  && argument_array.length >= 5
-                  && IsInteger( argument_array[ 1 ] )
-                  && IsInteger( argument_array[ 2 ] ) )
+                  && argument_array.length >= 7
+                  && IsReal( argument_array[ 1 ] )
+                  && IsInteger( argument_array[ 2 ] )
+                  && IsInteger( argument_array[ 3 ] )
+                  && IsInteger( argument_array[ 4 ] ) )
         {
-            ReadCloud(
+            ReadFile(
                 argument_array[ 0 ],
-                argument_array[ 1 ].to!long(),
+                argument_array[ 1 ].to!float(),
                 argument_array[ 2 ].to!long(),
-                argument_array[ 3 ],
-                argument_array[ 4 ]
+                argument_array[ 3 ].to!long(),
+                argument_array[ 4 ].to!long(),
+                argument_array[ 5 ],
+                argument_array[ 6 ]
                 );
 
-            argument_array = argument_array[ 4 .. $ ];
+            argument_array = argument_array[ 5 .. $ ];
         }
         else if ( option == "--read-xyz"
-                  && argument_array.length >= 1 )
+                  && argument_array.length >= 2
+                  && IsReal( argument_array[ 1 ] ) )
         {
-            ReadXyzCloud( argument_array[ 0 ] );
+            ReadXyzFile(
+                argument_array[ 0 ],
+                argument_array[ 1 ].to!float()
+                );
 
-            argument_array = argument_array[ 1 .. $ ];
+            argument_array = argument_array[ 2 .. $ ];
         }
         else if ( option == "--read-pts"
-                  && argument_array.length >= 1 )
+                  && argument_array.length >= 2
+                  && IsReal( argument_array[ 1 ] ) )
         {
-            ReadPtsCloud( argument_array[ 0 ] );
+            ReadPtsFile(
+                argument_array[ 0 ],
+                argument_array[ 1 ].to!float()
+                );
 
-            argument_array = argument_array[ 1 .. $ ];
+            argument_array = argument_array[ 2 .. $ ];
         }
         else if ( option == "--read-obj"
-                  && argument_array.length >= 1 )
+                  && argument_array.length >= 2
+                  && IsReal( argument_array[ 1 ] ) )
         {
-            ReadObjCloud( argument_array[ 0 ] );
+            ReadObjFile(
+                argument_array[ 0 ],
+                argument_array[ 1 ].to!float()
+                );
 
-            argument_array = argument_array[ 1 .. $ ];
+            argument_array = argument_array[ 2 .. $ ];
         }
         else if ( option == "--translate"
                   && argument_array.length >= 3
                   && IsReal( argument_array[ 0 ] )
                   && IsReal( argument_array[ 1 ] )
                   && IsReal( argument_array[ 2 ] )
-                  && Cloud !is null )
+                  && HasCloud() )
         {
             TranslateCloud(
                 argument_array[ 0 ].to!float(),
@@ -2273,7 +2366,7 @@ void main(
                   && IsReal( argument_array[ 0 ] )
                   && IsReal( argument_array[ 1 ] )
                   && IsReal( argument_array[ 2 ] )
-                  && Cloud !is null )
+                  && HasCloud() )
         {
             ScaleCloud(
                 argument_array[ 0 ].to!float(),
@@ -2286,7 +2379,7 @@ void main(
         else if ( option == "--rotate-x"
                   && argument_array.length >= 1
                   && IsReal( argument_array[ 0 ] )
-                  && Cloud !is null )
+                  && HasCloud() )
         {
             RotateCloudAroundX( argument_array[ 0 ].to!float() * DegreeToRadianFactor );
 
@@ -2295,7 +2388,7 @@ void main(
         else if ( option == "--rotate-y"
                   && argument_array.length >= 1
                   && IsReal( argument_array[ 0 ] )
-                  && Cloud !is null )
+                  && HasCloud() )
         {
             RotateCloudAroundY( argument_array[ 0 ].to!float() * DegreeToRadianFactor );
 
@@ -2304,7 +2397,7 @@ void main(
         else if ( option == "--rotate-z"
                   && argument_array.length >= 1
                   && IsReal( argument_array[ 0 ] )
-                  && Cloud !is null )
+                  && HasCloud() )
         {
             RotateCloudAroundZ( argument_array[ 0 ].to!float() * DegreeToRadianFactor );
 
@@ -2313,42 +2406,33 @@ void main(
         else if ( option == "--decimate"
                   && argument_array.length >= 1
                   && IsReal( argument_array[ 0 ] )
-                  && Cloud !is null )
+                  && HasCloud() )
         {
             DecimateCloud( argument_array[ 0 ].to!float() );
 
             argument_array = argument_array[ 1 .. $ ];
         }
-        else if ( option == "--triangulate"
-                  && argument_array.length >= 1
-                  && IsReal( argument_array[ 0 ] )
-                  && Cloud !is null )
-        {
-            TriangulateCloud( argument_array[ 0 ].to!float() );
-
-            argument_array = argument_array[ 1 .. $ ];
-        }
         else if ( option == "--write-xyz"
                   && argument_array.length >= 1
-                  && Cloud !is null )
+                  && HasCloud() )
         {
-            WriteXyzCloud( argument_array[ 0 ] );
+            WriteXyzFile( argument_array[ 0 ] );
 
             argument_array = argument_array[ 1 .. $ ];
         }
         else if ( option == "--write-pts"
                   && argument_array.length >= 1
-                  && Cloud !is null )
+                  && HasCloud() )
         {
-            WritePtsCloud( argument_array[ 0 ] );
+            WritePtsFile( argument_array[ 0 ] );
 
             argument_array = argument_array[ 1 .. $ ];
         }
         else if ( option == "--write-obj"
                   && argument_array.length >= 1
-                  && Mesh !is null )
+                  && HasMesh() )
         {
-            WriteObjMesh( argument_array[ 0 ] );
+            WriteObjFile( argument_array[ 0 ] );
 
             argument_array = argument_array[ 1 .. $ ];
         }
@@ -2363,32 +2447,32 @@ void main(
         writeln( "Usage :" );
         writeln( "    nebula <options>" );
         writeln( "Options :" );
+        writeln( "    --position-offset <x> <y> <z>" );
         writeln( "    --position-scaling <x> <y> <z>" );
         writeln( "    --position-rotation <x> <y> <z>" );
         writeln( "    --position-translation <x> <y> <z>" );
         writeln( "    --color-offset <r> <g> <b> <i>" );
         writeln( "    --color-scaling <r> <g> <b> <i>" );
         writeln( "    --color-translation <r> <g> <b> <i>" );
-        writeln( "    --read <file path> <skipped line count> <field count> <line prefix> <line format>" );
-        writeln( "    --read-xyz <file path>" );
-        writeln( "    --read-pts <file path>" );
-        writeln( "    --read-obj <file path>" );
+        writeln( "    --read <file path> <precision> <skipped line count> <minimum field count> <maximum field count> <line prefix> <line format>" );
+        writeln( "    --read-xyz <file path> <precision>" );
+        writeln( "    --read-pts <file path> <precision>" );
+        writeln( "    --read-obj <file path> <precision>" );
         writeln( "    --translate <x> <y> <z>" );
         writeln( "    --scale <x> <y> <z>" );
         writeln( "    --rotate-x <degree angle>" );
         writeln( "    --rotate-y <degree angle>" );
         writeln( "    --rotate-z <degree angle>" );
         writeln( "    --decimate <precision>" );
-        writeln( "    --triangulate <precision>" );
         writeln( "    --write-xyz <file path>" );
         writeln( "    --write-pts <file path>" );
         writeln( "    --write-obj <file path>" );
         writeln( "Examples :" );
-        writeln( "    nebula --read-pts cloud.pts --write-xyz cloud.xyz" );
-        writeln( "    nebula --read-pts cloud.pts --scale 2 2 2 --rotate-z 45 --write-pts scaled_cloud.pts" );
-        writeln( "    nebula --read-xyz cloud.xyz --position-scaling 2 2 2 --read-xyz cloud.xyz --write-xyz merged_clouds.xyz" );
-        writeln( "    nebula --read-pts cloud.pts --decimate 0.01 --write-pts decimated_cloud.pts" );
-        writeln( "    nebula --read-pts cloud.pts --triangulate 0.01 --write-obj triangulated_cloud.obj" );
+        writeln( "    nebula --read-pts cloud.pts 0.0 --write-xyz cloud.xyz" );
+        writeln( "    nebula --read-pts cloud.pts 0.0 --scale 2 2 2 --rotate-z 45 --write-pts scaled_cloud.pts" );
+        writeln( "    nebula --read-xyz cloud.xyz 0.0 --position-scaling 2 2 2 --read-xyz cloud.xyz --write-xyz merged_clouds.xyz" );
+        writeln( "    nebula --read-pts cloud.pts 0.01 --write-pts decimated_cloud.pts" );
+        writeln( "    nebula --read-pts cloud.pts 0.01 --write-obj triangulated_cloud.obj" );
         Abort( "Invalid arguments : " ~ argument_array.to!string() );
     }
 }
