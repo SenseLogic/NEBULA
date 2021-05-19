@@ -736,8 +736,6 @@ class CLOUD
         File
             file;
 
-        writeln( "Writing file : ", file_path );
-
         try
         {
             file.open( file_path, "w" );
@@ -770,8 +768,6 @@ class CLOUD
     {
         File
             file;
-
-        writeln( "Writing file : ", file_path );
 
         try
         {
@@ -1356,8 +1352,6 @@ class MESH
         File
             file;
 
-        writeln( "Writing file : ", file_path );
-
         try
         {
             file.open( file_path, "w" );
@@ -1493,6 +1487,8 @@ class MESH
         CUBE
             cube;
 
+        writeln( "Triangulating cloud : ", grid.Precision );
+
         grid.AddEmptyCells();
 
         foreach ( ref cell; grid.CellMap )
@@ -1577,25 +1573,6 @@ void Abort(
     PrintError( exception.msg );
 
     exit( -1 );
-}
-
-// ~~
-
-void WriteText(
-    string file_path,
-    string file_text
-    )
-{
-    writeln( "Writing file : ", file_path );
-
-    try
-    {
-        file_path.write( file_text );
-    }
-    catch ( Exception exception )
-    {
-        Abort( "Can't write file : " ~ file_path, exception );
-    }
 }
 
 // ~~
@@ -1848,6 +1825,10 @@ void ReadFile(
     string line_format
     )
 {
+    float
+        x_field_factor,
+        y_field_factor,
+        z_field_factor;
     long
         b_field_index,
         i_field_index,
@@ -1864,6 +1845,8 @@ void ReadFile(
         file;
     POINT
         point;
+
+    writeln( "Reading file : ", file_path, " ", precision );
 
     if ( precision == 0.0 )
     {
@@ -1892,15 +1875,34 @@ void ReadFile(
         }
     }
 
-    x_field_index = line_format.indexOf( 'x' );
-    y_field_index = line_format.indexOf( 'y' );
-    z_field_index = line_format.indexOf( 'z' );
-    r_field_index = line_format.indexOf( 'r' );
-    g_field_index = line_format.indexOf( 'g' );
-    b_field_index = line_format.indexOf( 'b' );
-    i_field_index = line_format.indexOf( 'i' );
+    x_field_index = line_format.indexOf( 'X' );
+    x_field_factor = 1.0f;
+    y_field_index = line_format.indexOf( 'Y' );
+    y_field_factor = 1.0f;
+    z_field_index = line_format.indexOf( 'Z' );
+    z_field_factor = 1.0f;
+    r_field_index = line_format.indexOf( 'R' );
+    g_field_index = line_format.indexOf( 'G' );
+    b_field_index = line_format.indexOf( 'B' );
+    i_field_index = line_format.indexOf( 'I' );
 
-    writeln( "Reading file : ", file_path );
+    if ( x_field_index < 0 )
+    {
+        x_field_index = line_format.indexOf( 'x' );
+        x_field_factor = -1.0f;
+    }
+
+    if ( y_field_index < 0 )
+    {
+        y_field_index = line_format.indexOf( 'y' );
+        y_field_factor = -1.0f;
+    }
+
+    if ( z_field_index < 0 )
+    {
+        z_field_index = line_format.indexOf( 'z' );
+        z_field_factor = -1.0f;
+    }
 
     try
     {
@@ -1931,19 +1933,19 @@ void ReadFile(
                             if ( x_field_index >= 0
                                  && x_field_index < field_array.length )
                             {
-                                point.PositionVector.X = field_array[ x_field_index ].to!float();
+                                point.PositionVector.X = field_array[ x_field_index ].to!float() * x_field_factor;
                             }
 
                             if ( y_field_index >= 0
                                  && y_field_index < field_array.length )
                             {
-                                point.PositionVector.Y = field_array[ y_field_index ].to!float();
+                                point.PositionVector.Y = field_array[ y_field_index ].to!float() * y_field_factor;
                             }
 
                             if ( z_field_index >= 0
                                  && z_field_index < field_array.length )
                             {
-                                point.PositionVector.Z = field_array[ z_field_index ].to!float();
+                                point.PositionVector.Z = field_array[ z_field_index ].to!float() * z_field_factor;
                             }
 
                             if ( r_field_index >= 0
@@ -2064,7 +2066,7 @@ void ReadXyzFile(
     float precision
     )
 {
-    ReadFile( file_path, precision, 0, 3, 3, "", "xyz" );
+    ReadFile( file_path, precision, 0, 3, 3, "", "XYZ" );
 }
 
 // ~~
@@ -2074,7 +2076,7 @@ void ReadPtsFile(
     float precision
     )
 {
-    ReadFile( file_path, precision, 0, 3, 7, "", "xyzirgb" );
+    ReadFile( file_path, precision, 0, 3, 7, "", "XYZIRGB" );
 }
 
 // ~~
@@ -2084,7 +2086,7 @@ void ReadObjFile(
     float precision
     )
 {
-    ReadFile( file_path, precision, 0, 4, 7, "v ", "_xyzrgb" );
+    ReadFile( file_path, precision, 0, 4, 7, "v ", "_XYZRGB" );
 }
 
 // ~~
@@ -2095,6 +2097,8 @@ void TranslateCloud(
     float z_translation
     )
 {
+    writeln( "Translating cloud : ", x_translation, " ", y_translation, " ", z_translation );
+
     Cloud.Translate( x_translation, y_translation, z_translation );
 }
 
@@ -2106,6 +2110,8 @@ void ScaleCloud(
     float z_scaling
     )
 {
+    writeln( "Scaling cloud : ", x_scaling, " ", y_scaling, " ", z_scaling );
+
     Cloud.Scale( x_scaling, y_scaling, z_scaling );
 }
 
@@ -2115,7 +2121,9 @@ void RotateCloudAroundX(
     float x_rotation_angle
     )
 {
-    Cloud.RotateAroundX( x_rotation_angle );
+    writeln( "Rotating cloud around X : ", x_rotation_angle );
+
+    Cloud.RotateAroundX( x_rotation_angle * DegreeToRadianFactor );
 }
 
 // ~~
@@ -2124,7 +2132,9 @@ void RotateCloudAroundY(
     float y_rotation_angle
     )
 {
-    Cloud.RotateAroundY( y_rotation_angle );
+    writeln( "Rotating cloud around Y : ", y_rotation_angle );
+
+    Cloud.RotateAroundY( y_rotation_angle * DegreeToRadianFactor );
 }
 
 // ~~
@@ -2133,7 +2143,9 @@ void RotateCloudAroundZ(
     float z_rotation_angle
     )
 {
-    Cloud.RotateAroundZ( z_rotation_angle );
+    writeln( "Rotating cloud around Y : ", z_rotation_angle );
+
+    Cloud.RotateAroundZ( z_rotation_angle * DegreeToRadianFactor );
 }
 
 // ~~
@@ -2142,6 +2154,8 @@ void DecimateCloud(
     float precision
     )
 {
+    writeln( "Decimating cloud : ", precision );
+
     SetPrecision( precision );
     Grid = new GRID( precision );
     Grid.SetFromCloud( Cloud );
@@ -2154,6 +2168,8 @@ void WriteXyzFile(
     string file_path
     )
 {
+    writeln( "Writing file : ", file_path );
+
     Cloud.WriteXyzFile( file_path );
 }
 
@@ -2163,6 +2179,8 @@ void WritePtsFile(
     string file_path
     )
 {
+    writeln( "Writing file : ", file_path );
+
     Cloud.WritePtsFile( file_path );
 }
 
@@ -2172,6 +2190,8 @@ void WriteObjFile(
     string file_path
     )
 {
+    writeln( "Writing file : ", file_path );
+
     Mesh.WriteObjFile( file_path, false );
 }
 
@@ -2311,7 +2331,7 @@ void main(
                 argument_array[ 6 ]
                 );
 
-            argument_array = argument_array[ 5 .. $ ];
+            argument_array = argument_array[ 7 .. $ ];
         }
         else if ( option == "--read-xyz"
                   && argument_array.length >= 2
@@ -2381,7 +2401,7 @@ void main(
                   && IsReal( argument_array[ 0 ] )
                   && HasCloud() )
         {
-            RotateCloudAroundX( argument_array[ 0 ].to!float() * DegreeToRadianFactor );
+            RotateCloudAroundX( argument_array[ 0 ].to!float() );
 
             argument_array = argument_array[ 1 .. $ ];
         }
@@ -2390,7 +2410,7 @@ void main(
                   && IsReal( argument_array[ 0 ] )
                   && HasCloud() )
         {
-            RotateCloudAroundY( argument_array[ 0 ].to!float() * DegreeToRadianFactor );
+            RotateCloudAroundY( argument_array[ 0 ].to!float() );
 
             argument_array = argument_array[ 1 .. $ ];
         }
@@ -2399,7 +2419,7 @@ void main(
                   && IsReal( argument_array[ 0 ] )
                   && HasCloud() )
         {
-            RotateCloudAroundZ( argument_array[ 0 ].to!float() * DegreeToRadianFactor );
+            RotateCloudAroundZ( argument_array[ 0 ].to!float() );
 
             argument_array = argument_array[ 1 .. $ ];
         }
@@ -2468,9 +2488,11 @@ void main(
         writeln( "    --write-pts <file path>" );
         writeln( "    --write-obj <file path>" );
         writeln( "Examples :" );
-        writeln( "    nebula --read-pts cloud.pts 0.0 --write-xyz cloud.xyz" );
-        writeln( "    nebula --read-pts cloud.pts 0.0 --scale 2 2 2 --rotate-z 45 --write-pts scaled_cloud.pts" );
-        writeln( "    nebula --read-xyz cloud.xyz 0.0 --position-scaling 2 2 2 --read-xyz cloud.xyz --write-xyz merged_clouds.xyz" );
+        writeln( "    nebula --read cloud.xyz 0 0 3 3 \"\" xZY --write-xyz flipped_cloud.xyz" );
+        writeln( "    nebula --read cloud.pts 0 1 7 7 \"\" xZYIRGB --write-pts flipped_cloud.pts" );
+        writeln( "    nebula --read-pts cloud.pts 0 --write-xyz converted_cloud.xyz" );
+        writeln( "    nebula --read-pts cloud.pts 0 --scale 2 2 2 --rotate-z 45 --write-pts scaled_cloud.pts" );
+        writeln( "    nebula --read-xyz cloud.xyz 0 --position-scaling 2 2 2 --read-xyz cloud.xyz --write-xyz merged_clouds.xyz" );
         writeln( "    nebula --read-pts cloud.pts 0.01 --write-pts decimated_cloud.pts" );
         writeln( "    nebula --read-pts cloud.pts 0.01 --write-obj triangulated_cloud.obj" );
         Abort( "Invalid arguments : " ~ argument_array.to!string() );

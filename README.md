@@ -45,12 +45,30 @@ nebula <options>
 --write-obj <file path> : write an OBJ mesh
 ```
 
+### Line format
+
+```
+_ : ignored
+x : -X
+y : -Y
+z : -Z
+X : +X
+Y : +Y
+Z : +Z
+I : intensity
+R : red
+G : green
+B : blue
+```
+
 ## Examples
 
 ```bash
-nebula --read-pts cloud.pts 0.0 --write-xyz cloud.xyz
-nebula --read-pts cloud.pts 0.0 --scale 2 2 2 --rotate-z 45 --write-pts scaled_cloud.pts
-nebula --read-xyz cloud.xyz 0.0 --position-scaling 2 2 2 --read-xyz cloud.xyz --write-xyz merged_clouds.xyz
+nebula --read cloud.xyz 0 0 3 3 "" xZY --write-xyz flipped_cloud.xyz
+nebula --read cloud.pts 0 1 7 7 "" xZYIRGB --write-pts flipped_cloud.pts
+nebula --read-pts cloud.pts 0 --write-xyz converted_cloud.xyz
+nebula --read-pts cloud.pts 0 --scale 2 2 2 --rotate-z 45 --write-pts scaled_cloud.pts
+nebula --read-xyz cloud.xyz 0 --position-scaling 2 2 2 --read-xyz cloud.xyz --write-xyz merged_clouds.xyz
 nebula --read-pts cloud.pts 0.01 --write-pts decimated_cloud.pts
 nebula --read-pts cloud.pts 0.01 --write-obj triangulated_cloud.obj
 ```
