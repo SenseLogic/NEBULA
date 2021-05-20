@@ -21,9 +21,10 @@
 // -- IMPORTS
 
 import core.stdc.stdlib : exit;
+import std.algorithm : max;
 import std.conv : to;
 import std.file : write;
-import std.math : cos, round, sin, PI;
+import std.math : cos, round, sin, sqrt, PI;
 import std.stdio : readln, writeln, File;
 import std.string : format, indexOf, split, startsWith, strip;
 
@@ -305,11 +306,39 @@ struct VECTOR_3
     // -- ATTRIBUTES
 
     float
-        X = 0.0f,
-        Y = 0.0f,
-        Z = 0.0f;
+        X = 0.0,
+        Y = 0.0,
+        Z = 0.0;
 
     // -- INQUIRIES
+
+    double GetDistance(
+        VECTOR_3 position_vector
+        )
+    {
+        double
+            x_distance,
+            y_distance,
+            z_distance;
+
+        x_distance = position_vector.X - X;
+        y_distance = position_vector.Y - Y;
+        z_distance = position_vector.Z - Z;
+
+        return sqrt( x_distance * x_distance + y_distance * y_distance + z_distance * z_distance );
+    }
+
+    // ~~
+
+    long GetPointCount(
+        VECTOR_3 position_vector,
+        double point_distance
+        )
+    {
+        return 1 + ( GetDistance( position_vector ) / point_distance ).to!long();
+    }
+
+    // ~~
 
     long GetCellIndex(
         float one_over_precision
@@ -496,6 +525,19 @@ struct VECTOR_3
 
     // ~~
 
+    void SetInterpolatedVector(
+        VECTOR_3 first_vector,
+        VECTOR_3 second_vector,
+        double interpolation_factor
+        )
+    {
+        X = first_vector.X + ( second_vector.X - first_vector.X ) * interpolation_factor;
+        Y = first_vector.Y + ( second_vector.Y - first_vector.Y ) * interpolation_factor;
+        Z = first_vector.Z + ( second_vector.Z - first_vector.Z ) * interpolation_factor;
+    }
+
+    // ~~
+
     void SetFromCellIndex(
         long cell_index,
         float cell_offset,
@@ -515,10 +557,10 @@ struct VECTOR_4
     // -- ATTRIBUTES
 
     float
-        X = 0.0f,
-        Y = 0.0f,
-        Z = 0.0f,
-        W = 0.0f;
+        X = 0.0,
+        Y = 0.0,
+        Z = 0.0,
+        W = 0.0;
 
     // -- OPERATIONS
 
@@ -729,7 +771,7 @@ class CLOUD
 
     // -- INQUIRIES
 
-    void WriteXyzFile(
+    void WriteXyzCloudFile(
         string file_path
         )
     {
@@ -762,7 +804,7 @@ class CLOUD
 
     // ~~
 
-    void WritePtsFile(
+    void WritePtsCloudFile(
         string file_path
         )
     {
@@ -1013,7 +1055,7 @@ class GRID
         )
     {
         Precision = precision;
-        OneOverPrecision = 1.0f / precision;
+        OneOverPrecision = 1.0 / precision;
     }
 
     // -- INQUIRIES
@@ -1342,7 +1384,7 @@ class MESH
 
     // ~~
 
-    void WriteObjFile(
+    void WriteObjMeshFile(
         string file_path,
         bool point_has_color
         )
@@ -1415,6 +1457,82 @@ class MESH
     }
 
     // -- OPERATIONS
+
+    void ReadObjMeshFile(
+        string file_path
+        )
+    {
+        long
+            first_point_index,
+            part_index;
+        long[]
+            point_index_array;
+        string
+            line;
+        string[]
+            part_array;
+        File
+            file;
+        POINT
+            point;
+
+        writeln( "Reading file : ", file_path );
+
+        first_point_index = PointIndexArray.length;
+
+        try
+        {
+            file.open( file_path, "r" );
+
+            foreach ( file_line; file.byLine() )
+            {
+                line = file_line.to!string().strip();
+
+                if ( line.startsWith( "v " ) )
+                {
+                    part_array = line.split( ' ' );
+
+                    point.PositionVector.X = part_array[ 1 ].to!float();
+                    point.PositionVector.Y = part_array[ 2 ].to!float();
+                    point.PositionVector.Z = part_array[ 3 ].to!float();
+
+                    Mesh.PointArray ~= point;
+                }
+                else if ( line.startsWith( "f " ) )
+                {
+                    part_array = line.split( ' ' );
+                    point_index_array = [];
+
+                    for ( part_index = 1;
+                          part_index < part_array.length;
+                          ++part_index )
+                    {
+                        point_index_array
+                            ~= first_point_index
+                               + part_array[ part_index ].split( '/' )[ 0 ].to!long()
+                               - 1;
+                    }
+
+                    for ( part_index = 1;
+                          part_index + 1 < part_array.length;
+                          ++part_index )
+                    {
+                        Mesh.PointIndexArray ~= point_index_array[ 0 ];
+                        Mesh.PointIndexArray ~= point_index_array[ part_index ];
+                        Mesh.PointIndexArray ~= point_index_array[ part_index + 1 ];
+                    }
+                }
+            }
+
+            file.close();
+        }
+        catch ( Exception exception )
+        {
+            Abort( "Can't read file : " ~ file_path, exception );
+        }
+    }
+
+    // ~~
 
     void AddPoint(
         ref POINT point
@@ -1526,6 +1644,18 @@ class MESH
 
 float
     Precision;
+float
+    XFieldFactor,
+    YFieldFactor,
+    ZFieldFactor;
+long
+    BFieldIndex,
+    IFieldIndex,
+    GFieldIndex,
+    RFieldIndex,
+    XFieldIndex,
+    YFieldIndex,
+    ZFieldIndex;
 CLOUD
     Cloud;
 GRID
@@ -1799,55 +1929,10 @@ bool HasMesh(
 
 // ~~
 
-void AddPoint(
-    ref POINT point
+bool HasCloudOrGrid(
+    float precision
     )
 {
-    if ( Cloud !is null )
-    {
-        Cloud.AddPoint( point );
-    }
-    else if ( Grid !is null )
-    {
-        Grid.AddPoint( point );
-    }
-}
-
-// ~~
-
-void ReadFile(
-    string file_path,
-    float precision,
-    long skipped_line_count,
-    long minimum_field_count,
-    long maximum_field_count,
-    string line_prefix,
-    string line_format
-    )
-{
-    float
-        x_field_factor,
-        y_field_factor,
-        z_field_factor;
-    long
-        b_field_index,
-        i_field_index,
-        g_field_index,
-        r_field_index,
-        x_field_index,
-        y_field_index,
-        z_field_index;
-    string
-        line;
-    string[]
-        field_array;
-    File
-        file;
-    POINT
-        point;
-
-    writeln( "Reading file : ", file_path, " ", precision );
-
     if ( precision == 0.0 )
     {
         if ( !HasCloud() )
@@ -1875,218 +1960,294 @@ void ReadFile(
         }
     }
 
-    x_field_index = line_format.indexOf( 'X' );
-    x_field_factor = 1.0f;
-    y_field_index = line_format.indexOf( 'Y' );
-    y_field_factor = 1.0f;
-    z_field_index = line_format.indexOf( 'Z' );
-    z_field_factor = 1.0f;
-    r_field_index = line_format.indexOf( 'R' );
-    g_field_index = line_format.indexOf( 'G' );
-    b_field_index = line_format.indexOf( 'B' );
-    i_field_index = line_format.indexOf( 'I' );
+    return true;
+}
 
-    if ( x_field_index < 0 )
+// ~~
+
+void AddPoint(
+    ref POINT point
+    )
+{
+    point.PositionVector.Translate(
+        PositionOffsetVector.X,
+        PositionOffsetVector.Y,
+        PositionOffsetVector.Z
+        );
+
+    point.PositionVector.Scale(
+        PositionScalingVector.X,
+        PositionScalingVector.Y,
+        PositionScalingVector.Z
+        );
+
+    if ( PositionRotationVector.Z != 0.0 )
     {
-        x_field_index = line_format.indexOf( 'x' );
-        x_field_factor = -1.0f;
+        point.PositionVector.RotateAroundZ(
+            PositionRotationVector.Z.cos(),
+            PositionRotationVector.Z.sin()
+            );
     }
 
-    if ( y_field_index < 0 )
+    if ( PositionRotationVector.X != 0.0 )
     {
-        y_field_index = line_format.indexOf( 'y' );
-        y_field_factor = -1.0f;
+        point.PositionVector.RotateAroundX(
+            PositionRotationVector.X.cos(),
+            PositionRotationVector.X.sin()
+            );
     }
 
-    if ( z_field_index < 0 )
+    if ( PositionRotationVector.Y != 0.0 )
     {
-        z_field_index = line_format.indexOf( 'z' );
-        z_field_factor = -1.0f;
+        point.PositionVector.RotateAroundY(
+            PositionRotationVector.Y.cos(),
+            PositionRotationVector.Y.sin()
+            );
     }
 
-    try
-    {
-        file.open( file_path, "r" );
+    point.PositionVector.Translate(
+        PositionTranslationVector.X,
+        PositionTranslationVector.Y,
+        PositionTranslationVector.Z
+        );
 
-        foreach ( file_line; file.byLine() )
+    point.ColorVector.Translate(
+        ColorOffsetVector.X,
+        ColorOffsetVector.Y,
+        ColorOffsetVector.Z,
+        ColorOffsetVector.W
+        );
+
+    point.ColorVector.Scale(
+        ColorScalingVector.X,
+        ColorScalingVector.Y,
+        ColorScalingVector.Z,
+        ColorScalingVector.W
+        );
+
+    point.ColorVector.Translate(
+        ColorTranslationVector.X,
+        ColorTranslationVector.Y,
+        ColorTranslationVector.Z,
+        ColorTranslationVector.W
+        );
+
+    if ( Cloud !is null )
+    {
+        Cloud.AddPoint( point );
+    }
+    else if ( Grid !is null )
+    {
+        Grid.AddPoint( point );
+    }
+}
+
+// ~~
+
+void SetLineFormat(
+    string line_format
+    )
+{
+    XFieldIndex = line_format.indexOf( 'X' );
+    XFieldFactor = 1.0;
+    YFieldIndex = line_format.indexOf( 'Y' );
+    YFieldFactor = 1.0;
+    ZFieldIndex = line_format.indexOf( 'Z' );
+    ZFieldFactor = 1.0;
+    RFieldIndex = line_format.indexOf( 'R' );
+    GFieldIndex = line_format.indexOf( 'G' );
+    BFieldIndex = line_format.indexOf( 'B' );
+    IFieldIndex = line_format.indexOf( 'I' );
+
+    if ( XFieldIndex < 0 )
+    {
+        XFieldIndex = line_format.indexOf( 'x' );
+        XFieldFactor = -1.0;
+    }
+
+    if ( YFieldIndex < 0 )
+    {
+        YFieldIndex = line_format.indexOf( 'y' );
+        YFieldFactor = -1.0;
+    }
+
+    if ( ZFieldIndex < 0 )
+    {
+        ZFieldIndex = line_format.indexOf( 'z' );
+        ZFieldFactor = -1.0;
+    }
+}
+
+// ~~
+
+void ReadCloudFile(
+    string file_path,
+    float precision,
+    long skipped_line_count,
+    long minimum_field_count,
+    long maximum_field_count,
+    string line_prefix,
+    string line_format
+    )
+{
+    string
+        line;
+    string[]
+        field_array;
+    File
+        file;
+    POINT
+        point;
+
+    writeln( "Reading file : ", file_path, " ", precision );
+
+    SetLineFormat( line_format );
+
+    if ( HasCloudOrGrid( precision ) )
+    {
+        try
         {
-            if ( skipped_line_count > 0 )
-            {
-                --skipped_line_count;
-            }
-            else
-            {
-                line = file_line.to!string().strip();
+            file.open( file_path, "r" );
 
-                if ( line_prefix.length == 0
-                     || line.startsWith( line_prefix ) )
+            foreach ( file_line; file.byLine() )
+            {
+                if ( skipped_line_count > 0 )
                 {
-                    field_array = line.split( ' ' );
+                    --skipped_line_count;
+                }
+                else
+                {
+                    line = file_line.to!string().strip();
 
-                    if ( field_array.length >= minimum_field_count
-                         && field_array.length <= maximum_field_count )
+                    if ( line_prefix.length == 0
+                         || line.startsWith( line_prefix ) )
                     {
-                        point.SetNull();
+                        field_array = line.split( ' ' );
 
-                        try
+                        if ( field_array.length >= minimum_field_count
+                             && field_array.length <= maximum_field_count )
                         {
-                            if ( x_field_index >= 0
-                                 && x_field_index < field_array.length )
+                            point.SetNull();
+
+                            try
                             {
-                                point.PositionVector.X = field_array[ x_field_index ].to!float() * x_field_factor;
+                                if ( XFieldIndex >= 0
+                                     && XFieldIndex < field_array.length )
+                                {
+                                    point.PositionVector.X = field_array[ XFieldIndex ].to!float() * XFieldFactor;
+                                }
+
+                                if ( YFieldIndex >= 0
+                                     && YFieldIndex < field_array.length )
+                                {
+                                    point.PositionVector.Y = field_array[ YFieldIndex ].to!float() * YFieldFactor;
+                                }
+
+                                if ( ZFieldIndex >= 0
+                                     && ZFieldIndex < field_array.length )
+                                {
+                                    point.PositionVector.Z = field_array[ ZFieldIndex ].to!float() * ZFieldFactor;
+                                }
+
+                                if ( RFieldIndex >= 0
+                                     && RFieldIndex < field_array.length )
+                                {
+                                    point.ColorVector.X = field_array[ RFieldIndex ].to!float();
+                                }
+
+                                if ( GFieldIndex >= 0
+                                     && GFieldIndex < field_array.length )
+                                {
+                                    point.ColorVector.Y = field_array[ GFieldIndex ].to!float();
+                                }
+
+                                if ( BFieldIndex >= 0
+                                     && BFieldIndex < field_array.length )
+                                {
+                                    point.ColorVector.Z = field_array[ BFieldIndex ].to!float();
+                                }
+
+                                if ( IFieldIndex >= 0
+                                     && IFieldIndex < field_array.length )
+                                {
+                                    point.ColorVector.W = field_array[ IFieldIndex ].to!float();
+                                }
+                            }
+                            catch ( Exception exception )
+                            {
+                                Abort( "Can't read line : " ~ line );
                             }
 
-                            if ( y_field_index >= 0
-                                 && y_field_index < field_array.length )
-                            {
-                                point.PositionVector.Y = field_array[ y_field_index ].to!float() * y_field_factor;
-                            }
-
-                            if ( z_field_index >= 0
-                                 && z_field_index < field_array.length )
-                            {
-                                point.PositionVector.Z = field_array[ z_field_index ].to!float() * z_field_factor;
-                            }
-
-                            if ( r_field_index >= 0
-                                 && r_field_index < field_array.length )
-                            {
-                                point.ColorVector.X = field_array[ r_field_index ].to!float();
-                            }
-
-                            if ( g_field_index >= 0
-                                 && g_field_index < field_array.length )
-                            {
-                                point.ColorVector.Y = field_array[ g_field_index ].to!float();
-                            }
-
-                            if ( b_field_index >= 0
-                                 && b_field_index < field_array.length )
-                            {
-                                point.ColorVector.Z = field_array[ b_field_index ].to!float();
-                            }
-
-                            if ( i_field_index >= 0
-                                 && i_field_index < field_array.length )
-                            {
-                                point.ColorVector.W = field_array[ i_field_index ].to!float();
-                            }
+                            AddPoint( point );
                         }
-                        catch ( Exception exception )
-                        {
-                            Abort( "Can't read line : " ~ line );
-                        }
-
-                        point.PositionVector.Translate(
-                            PositionOffsetVector.X,
-                            PositionOffsetVector.Y,
-                            PositionOffsetVector.Z
-                            );
-
-                        point.PositionVector.Scale(
-                            PositionScalingVector.X,
-                            PositionScalingVector.Y,
-                            PositionScalingVector.Z
-                            );
-
-                        if ( PositionRotationVector.Z != 0.0 )
-                        {
-                            point.PositionVector.RotateAroundZ(
-                                PositionRotationVector.Z.cos(),
-                                PositionRotationVector.Z.sin()
-                                );
-                        }
-
-                        if ( PositionRotationVector.X != 0.0 )
-                        {
-                            point.PositionVector.RotateAroundX(
-                                PositionRotationVector.X.cos(),
-                                PositionRotationVector.X.sin()
-                                );
-                        }
-
-                        if ( PositionRotationVector.Y != 0.0 )
-                        {
-                            point.PositionVector.RotateAroundY(
-                                PositionRotationVector.Y.cos(),
-                                PositionRotationVector.Y.sin()
-                                );
-                        }
-
-                        point.PositionVector.Translate(
-                            PositionTranslationVector.X,
-                            PositionTranslationVector.Y,
-                            PositionTranslationVector.Z
-                            );
-
-                        point.ColorVector.Translate(
-                            ColorOffsetVector.X,
-                            ColorOffsetVector.Y,
-                            ColorOffsetVector.Z,
-                            ColorOffsetVector.W
-                            );
-
-                        point.ColorVector.Scale(
-                            ColorScalingVector.X,
-                            ColorScalingVector.Y,
-                            ColorScalingVector.Z,
-                            ColorScalingVector.W
-                            );
-
-                        point.ColorVector.Translate(
-                            ColorTranslationVector.X,
-                            ColorTranslationVector.Y,
-                            ColorTranslationVector.Z,
-                            ColorTranslationVector.W
-                            );
-
-                        AddPoint( point );
                     }
                 }
             }
-        }
 
-        if ( Grid !is null )
+            if ( Grid !is null )
+            {
+                Grid.SetAveragePoint();
+            }
+
+            file.close();
+        }
+        catch ( Exception exception )
         {
-            Grid.SetAveragePoint();
+            Abort( "Can't read file : " ~ file_path, exception );
         }
-
-        file.close();
-    }
-    catch ( Exception exception )
-    {
-        Abort( "Can't read file : " ~ file_path, exception );
     }
 }
 
 // ~~
 
-void ReadXyzFile(
+void ReadXyzCloudFile(
     string file_path,
     float precision
     )
 {
-    ReadFile( file_path, precision, 0, 3, 3, "", "XYZ" );
+    ReadCloudFile( file_path, precision, 0, 3, 3, "", "XYZ" );
 }
 
 // ~~
 
-void ReadPtsFile(
+void ReadPtsCloudFile(
     string file_path,
     float precision
     )
 {
-    ReadFile( file_path, precision, 0, 3, 7, "", "XYZIRGB" );
+    ReadCloudFile( file_path, precision, 0, 3, 7, "", "XYZIRGB" );
 }
 
 // ~~
 
-void ReadObjFile(
+void ReadObjCloudFile(
     string file_path,
     float precision
     )
 {
-    ReadFile( file_path, precision, 0, 4, 7, "v ", "_XYZRGB" );
+    ReadCloudFile( file_path, precision, 0, 4, 7, "v ", "_XYZRGB" );
+}
+
+// ~~
+
+void ReadObjMeshFile(
+    string file_path
+    )
+{
+    Cloud = null;
+    Grid = null;
+    Mesh = new MESH();
+    Mesh.ReadObjMeshFile( file_path );
+}
+
+// ~~
+
+void TessellateMesh(
+    float precision,
+    float tessellation
+    )
+{
+    writeln( "Tesselating mesh : ", precision, " ", tessellation );
 }
 
 // ~~
@@ -2164,35 +2325,35 @@ void DecimateCloud(
 
 // ~~
 
-void WriteXyzFile(
+void WriteXyzCloudFile(
     string file_path
     )
 {
     writeln( "Writing file : ", file_path );
 
-    Cloud.WriteXyzFile( file_path );
+    Cloud.WriteXyzCloudFile( file_path );
 }
 
 // ~~
 
-void WritePtsFile(
+void WritePtsCloudFile(
     string file_path
     )
 {
     writeln( "Writing file : ", file_path );
 
-    Cloud.WritePtsFile( file_path );
+    Cloud.WritePtsCloudFile( file_path );
 }
 
 // ~~
 
-void WriteObjFile(
+void WriteObjMeshFile(
     string file_path
     )
 {
     writeln( "Writing file : ", file_path );
 
-    Mesh.WriteObjFile( file_path, false );
+    Mesh.WriteObjMeshFile( file_path, false );
 }
 
 // ~~
@@ -2314,14 +2475,14 @@ void main(
 
             argument_array = argument_array[ 3 .. $ ];
         }
-        else if ( option == "--read"
+        else if ( option == "--read-cloud"
                   && argument_array.length >= 7
                   && IsReal( argument_array[ 1 ] )
                   && IsInteger( argument_array[ 2 ] )
                   && IsInteger( argument_array[ 3 ] )
                   && IsInteger( argument_array[ 4 ] ) )
         {
-            ReadFile(
+            ReadCloudFile(
                 argument_array[ 0 ],
                 argument_array[ 1 ].to!float(),
                 argument_array[ 2 ].to!long(),
@@ -2333,34 +2494,56 @@ void main(
 
             argument_array = argument_array[ 7 .. $ ];
         }
-        else if ( option == "--read-xyz"
+        else if ( option == "--read-xyz-cloud"
                   && argument_array.length >= 2
                   && IsReal( argument_array[ 1 ] ) )
         {
-            ReadXyzFile(
+            ReadXyzCloudFile(
                 argument_array[ 0 ],
                 argument_array[ 1 ].to!float()
                 );
 
             argument_array = argument_array[ 2 .. $ ];
         }
-        else if ( option == "--read-pts"
+        else if ( option == "--read-pts-cloud"
                   && argument_array.length >= 2
                   && IsReal( argument_array[ 1 ] ) )
         {
-            ReadPtsFile(
+            ReadPtsCloudFile(
                 argument_array[ 0 ],
                 argument_array[ 1 ].to!float()
                 );
 
             argument_array = argument_array[ 2 .. $ ];
         }
-        else if ( option == "--read-obj"
-                  && argument_array.length >= 2
+        else if ( option == "--read-obj-cloud"
+                  && argument_array.length >= 3
                   && IsReal( argument_array[ 1 ] ) )
         {
-            ReadObjFile(
+            ReadObjCloudFile(
                 argument_array[ 0 ],
+                argument_array[ 1 ].to!float()
+                );
+
+            argument_array = argument_array[ 3 .. $ ];
+        }
+        else if ( option == "--read-obj-mesh"
+                  && argument_array.length >= 1 )
+        {
+            ReadObjMeshFile(
+                argument_array[ 0 ]
+                );
+
+            argument_array = argument_array[ 1 .. $ ];
+        }
+        else if ( option == "--tessellate"
+                  && argument_array.length >= 2
+                  && IsReal( argument_array[ 0 ] )
+                  && IsReal( argument_array[ 1 ] )
+                  && HasMesh() )
+        {
+            TessellateMesh(
+                argument_array[ 0 ].to!float(),
                 argument_array[ 1 ].to!float()
                 );
 
@@ -2432,27 +2615,27 @@ void main(
 
             argument_array = argument_array[ 1 .. $ ];
         }
-        else if ( option == "--write-xyz"
+        else if ( option == "--write-xyz-cloud"
                   && argument_array.length >= 1
                   && HasCloud() )
         {
-            WriteXyzFile( argument_array[ 0 ] );
+            WriteXyzCloudFile( argument_array[ 0 ] );
 
             argument_array = argument_array[ 1 .. $ ];
         }
-        else if ( option == "--write-pts"
+        else if ( option == "--write-pts-cloud"
                   && argument_array.length >= 1
                   && HasCloud() )
         {
-            WritePtsFile( argument_array[ 0 ] );
+            WritePtsCloudFile( argument_array[ 0 ] );
 
             argument_array = argument_array[ 1 .. $ ];
         }
-        else if ( option == "--write-obj"
+        else if ( option == "--write-obj-mesh"
                   && argument_array.length >= 1
                   && HasMesh() )
         {
-            WriteObjFile( argument_array[ 0 ] );
+            WriteObjMeshFile( argument_array[ 0 ] );
 
             argument_array = argument_array[ 1 .. $ ];
         }
@@ -2474,27 +2657,29 @@ void main(
         writeln( "    --color-offset <r> <g> <b> <i>" );
         writeln( "    --color-scaling <r> <g> <b> <i>" );
         writeln( "    --color-translation <r> <g> <b> <i>" );
-        writeln( "    --read <file path> <precision> <skipped line count> <minimum field count> <maximum field count> <line prefix> <line format>" );
-        writeln( "    --read-xyz <file path> <precision>" );
-        writeln( "    --read-pts <file path> <precision>" );
-        writeln( "    --read-obj <file path> <precision>" );
+        writeln( "    --read-cloud <file path> <precision> <skipped line count> <minimum field count> <maximum field count> <line prefix> <line format>" );
+        writeln( "    --read-xyz-cloud <file path> <precision>" );
+        writeln( "    --read-pts-cloud <file path> <precision>" );
+        writeln( "    --read-obj-cloud <file path> <precision>" );
+        writeln( "    --read-obj-mesh <file path>" );
+        writeln( "    --tessellate <distance> <precision>" );
         writeln( "    --translate <x> <y> <z>" );
         writeln( "    --scale <x> <y> <z>" );
         writeln( "    --rotate-x <degree angle>" );
         writeln( "    --rotate-y <degree angle>" );
         writeln( "    --rotate-z <degree angle>" );
         writeln( "    --decimate <precision>" );
-        writeln( "    --write-xyz <file path>" );
-        writeln( "    --write-pts <file path>" );
-        writeln( "    --write-obj <file path>" );
+        writeln( "    --write-xyz-cloud <file path>" );
+        writeln( "    --write-pts-cloud <file path>" );
+        writeln( "    --write-obj-mesh <file path>" );
         writeln( "Examples :" );
-        writeln( "    nebula --read cloud.xyz 0 0 3 3 \"\" xZY --write-xyz flipped_cloud.xyz" );
-        writeln( "    nebula --read cloud.pts 0 1 7 7 \"\" xZYIRGB --write-pts flipped_cloud.pts" );
-        writeln( "    nebula --read-pts cloud.pts 0 --write-xyz converted_cloud.xyz" );
-        writeln( "    nebula --read-pts cloud.pts 0 --scale 2 2 2 --rotate-z 45 --write-pts scaled_cloud.pts" );
-        writeln( "    nebula --read-xyz cloud.xyz 0 --position-scaling 2 2 2 --read-xyz cloud.xyz --write-xyz merged_clouds.xyz" );
-        writeln( "    nebula --read-pts cloud.pts 0.01 --write-pts decimated_cloud.pts" );
-        writeln( "    nebula --read-pts cloud.pts 0.01 --write-obj triangulated_cloud.obj" );
+        writeln( "    nebula --read-cloud cloud.xyz 0 0 3 3 \"\" xZY --write-xyz-cloud flipped_cloud.xyz" );
+        writeln( "    nebula --read-cloud cloud.pts 0 1 7 7 \"\" xZYIRGB --write-pts-cloud flipped_cloud.pts" );
+        writeln( "    nebula --read-pts-cloud cloud.pts 0 --write-xyz-cloud converted_cloud.xyz" );
+        writeln( "    nebula --read-pts-cloud cloud.pts 0 --scale 2 2 2 --rotate-z 45 --write-pts-cloud scaled_cloud.pts" );
+        writeln( "    nebula --read-xyz-cloud cloud.xyz 0 --position-scaling 2 2 2 --read-xyz-cloud cloud.xyz --write-xyz-cloud merged_clouds.xyz" );
+        writeln( "    nebula --read-pts-cloud cloud.pts 0.01 --write-pts-cloud decimated_cloud.pts" );
+        writeln( "    nebula --read-pts-cloud cloud.pts 0.01 --write-obj-mesh triangulated_cloud.obj" );
         Abort( "Invalid arguments : " ~ argument_array.to!string() );
     }
 }
