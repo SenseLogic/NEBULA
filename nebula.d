@@ -312,11 +312,11 @@ struct VECTOR_3
 
     // -- INQUIRIES
 
-    double GetDistance(
+    float GetDistance(
         VECTOR_3 position_vector
         )
     {
-        double
+        float
             x_distance,
             y_distance,
             z_distance;
@@ -332,7 +332,7 @@ struct VECTOR_3
 
     long GetPointCount(
         VECTOR_3 position_vector,
-        double point_distance
+        float point_distance
         )
     {
         return 1 + ( GetDistance( position_vector ) / point_distance ).to!long();
@@ -528,7 +528,7 @@ struct VECTOR_3
     void SetInterpolatedVector(
         VECTOR_3 first_vector,
         VECTOR_3 second_vector,
-        double interpolation_factor
+        float interpolation_factor
         )
     {
         X = first_vector.X + ( second_vector.X - first_vector.X ) * interpolation_factor;
@@ -650,6 +650,20 @@ struct VECTOR_4
         Z *= z_scaling;
         W *= w_scaling;
     }
+
+    // ~~
+
+    void SetInterpolatedVector(
+        VECTOR_4 first_vector,
+        VECTOR_4 second_vector,
+        float interpolation_factor
+        )
+    {
+        X = first_vector.X + ( second_vector.X - first_vector.X ) * interpolation_factor;
+        Y = first_vector.Y + ( second_vector.Y - first_vector.Y ) * interpolation_factor;
+        Z = first_vector.Z + ( second_vector.Z - first_vector.Z ) * interpolation_factor;
+        W = first_vector.W + ( second_vector.W - first_vector.W ) * interpolation_factor;
+    }
 }
 
 // ~~
@@ -670,6 +684,16 @@ struct POINT
         )
     {
         return PositionVector.GetCellIndex( one_over_precision );
+    }
+
+    // ~~
+
+    long GetPointCount(
+        POINT point,
+        float point_distance
+        )
+    {
+        return PositionVector.GetPointCount( point.PositionVector, point_distance );
     }
 
     // -- OPERATIONS
@@ -719,6 +743,18 @@ struct POINT
     {
         PositionVector.SetAverageVector( first_point.PositionVector, second_point.PositionVector );
         ColorVector.SetAverageVector( first_point.ColorVector, second_point.ColorVector );
+    }
+
+    // ~~
+
+    void SetInterpolatedPoint(
+        ref POINT first_point,
+        ref POINT second_point,
+        float interpolation_factor
+        )
+    {
+        PositionVector.SetInterpolatedVector( first_point.PositionVector, second_point.PositionVector, interpolation_factor );
+        ColorVector.SetInterpolatedVector( first_point.ColorVector, second_point.ColorVector, interpolation_factor );
     }
 
     // ~~
@@ -1276,6 +1312,84 @@ class GRID
 
         SetAveragePoint();
     }
+
+    // ~~
+
+    void SetFromMesh(
+        MESH mesh
+        )
+    {
+        float
+            first_interpolation_factor,
+            second_interpolation_factor;
+        long
+            first_edge_point_count,
+            first_point_count,
+            first_point_index,
+            point_index_index,
+            second_edge_point_count,
+            second_point_count,
+            second_point_index,
+            third_edge_point_count;
+        POINT
+            first_interpolated_point,
+            first_point,
+            point,
+            second_interpolated_point,
+            second_point,
+            third_point;
+
+        for ( point_index_index = 0;
+              point_index_index + 2 < mesh.PointIndexArray.length;
+              ++point_index_index )
+        {
+            first_point = mesh.PointArray[ mesh.PointIndexArray[ point_index_index ] ];
+            second_point = mesh.PointArray[ mesh.PointIndexArray[ point_index_index + 1 ] ];
+            third_point = mesh.PointArray[ mesh.PointIndexArray[ point_index_index + 2 ] ];
+
+            first_edge_point_count = first_point.GetPointCount( second_point, Precision );
+            second_edge_point_count = first_point.GetPointCount( third_point, Precision );
+            first_point_count = max( first_edge_point_count, second_edge_point_count );
+
+            for ( first_point_index = 0;
+                  first_point_index <= first_point_count;
+                  ++first_point_index )
+            {
+                first_interpolation_factor = first_point_index.to!float() / first_point_count.to!float();
+
+                first_interpolated_point.SetInterpolatedPoint(
+                    first_point,
+                    second_point,
+                    first_interpolation_factor
+                    );
+
+                second_interpolated_point.SetInterpolatedPoint(
+                    first_point,
+                    third_point,
+                    first_interpolation_factor
+                    );
+
+                third_edge_point_count = first_interpolated_point.GetPointCount( second_interpolated_point, Precision );
+
+                for ( second_point_index = 0;
+                      second_point_index <= second_point_count;
+                      ++second_point_index )
+                {
+                    second_interpolation_factor = second_point_index.to!float() / second_point_count.to!float();
+
+                    point.SetInterpolatedPoint(
+                        first_interpolated_point,
+                        second_interpolated_point,
+                        second_interpolation_factor
+                        );
+
+                    AddPoint( point );
+                }
+            }
+        }
+
+        SetAveragePoint();
+    }
 }
 
 // ~~
@@ -1434,7 +1548,7 @@ class MESH
             if ( PointIndexArray.length > 0 )
             {
                 for ( point_index_index = 0;
-                      point_index_index < PointIndexArray.length;
+                      point_index_index + 2 < PointIndexArray.length;
                       point_index_index += 3 )
                 {
                     file.write(
@@ -2236,6 +2350,11 @@ void TessellateMesh(
     )
 {
     writeln( "Tesselating mesh : ", distance );
+
+    Grid = new GRID( distance );
+    Grid.SetFromMesh( Mesh );
+    Mesh = null;
+    Cloud = null;
 }
 
 // ~~
