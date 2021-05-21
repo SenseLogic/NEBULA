@@ -35,7 +35,7 @@ nebula <options>
 --read-pts-cloud <file path> <precision> : read a PTS point cloud
 --read-obj-cloud <file path> <precision> <tessellation> : read an OBJ point cloud
 --read-obj-mesh <file path> : read an OBJ mesh
---tessellate <distance> <precision> : tessellate mesh
+--tessellate <distance> : tessellate mesh
 --translate <x> <y> <z> : translate the point cloud
 --scale <x> <y> <z> : translate the point cloud
 --rotate-x <degree angle> : rotate the point cloud around the X axis
