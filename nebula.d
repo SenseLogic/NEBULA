@@ -313,7 +313,7 @@ struct VECTOR_3
     // -- INQUIRIES
 
     float GetDistance(
-        VECTOR_3 position_vector
+        ref VECTOR_3 position_vector
         )
     {
         float
@@ -331,7 +331,7 @@ struct VECTOR_3
     // ~~
 
     long GetPointCount(
-        VECTOR_3 position_vector,
+        ref VECTOR_3 position_vector,
         float point_distance
         )
     {
@@ -526,8 +526,8 @@ struct VECTOR_3
     // ~~
 
     void SetInterpolatedVector(
-        VECTOR_3 first_vector,
-        VECTOR_3 second_vector,
+        ref VECTOR_3 first_vector,
+        ref VECTOR_3 second_vector,
         float interpolation_factor
         )
     {
@@ -654,8 +654,8 @@ struct VECTOR_4
     // ~~
 
     void SetInterpolatedVector(
-        VECTOR_4 first_vector,
-        VECTOR_4 second_vector,
+        ref VECTOR_4 first_vector,
+        ref VECTOR_4 second_vector,
         float interpolation_factor
         )
     {
@@ -1329,8 +1329,7 @@ class GRID
             point_index_index,
             second_edge_point_count,
             second_point_count,
-            second_point_index,
-            third_edge_point_count;
+            second_point_index;
         POINT
             first_interpolated_point,
             first_point,
@@ -1341,7 +1340,7 @@ class GRID
 
         for ( point_index_index = 0;
               point_index_index + 2 < mesh.PointIndexArray.length;
-              ++point_index_index )
+              point_index_index += 3 )
         {
             first_point = mesh.PointArray[ mesh.PointIndexArray[ point_index_index ] ];
             second_point = mesh.PointArray[ mesh.PointIndexArray[ point_index_index + 1 ] ];
@@ -1369,7 +1368,7 @@ class GRID
                     first_interpolation_factor
                     );
 
-                third_edge_point_count = first_interpolated_point.GetPointCount( second_interpolated_point, Precision );
+                second_point_count = first_interpolated_point.GetPointCount( second_interpolated_point, Precision );
 
                 for ( second_point_index = 0;
                       second_point_index <= second_point_count;
@@ -1578,7 +1577,8 @@ class MESH
     {
         long
             first_point_index,
-            part_index;
+            part_index,
+            point_index_index;
         long[]
             point_index_array;
         string
@@ -1592,7 +1592,7 @@ class MESH
 
         writeln( "Reading file : ", file_path );
 
-        first_point_index = PointIndexArray.length;
+        first_point_index = PointArray.length;
 
         try
         {
@@ -1610,7 +1610,7 @@ class MESH
                     point.PositionVector.Y = part_array[ 2 ].to!float();
                     point.PositionVector.Z = part_array[ 3 ].to!float();
 
-                    Mesh.PointArray ~= point;
+                    PointArray ~= point;
                 }
                 else if ( line.startsWith( "f " ) )
                 {
@@ -1627,13 +1627,13 @@ class MESH
                                - 1;
                     }
 
-                    for ( part_index = 1;
-                          part_index + 1 < part_array.length;
-                          ++part_index )
+                    for ( point_index_index = 1;
+                          point_index_index + 1 < point_index_array.length;
+                          ++point_index_index )
                     {
-                        Mesh.PointIndexArray ~= point_index_array[ 0 ];
-                        Mesh.PointIndexArray ~= point_index_array[ part_index ];
-                        Mesh.PointIndexArray ~= point_index_array[ part_index + 1 ];
+                        PointIndexArray ~= point_index_array[ 0 ];
+                        PointIndexArray ~= point_index_array[ point_index_index ];
+                        PointIndexArray ~= point_index_array[ point_index_index + 1 ];
                     }
                 }
             }
@@ -2016,11 +2016,10 @@ bool HasGrid(
 // ~~
 
 bool HasMesh(
-    float precision
     )
 {
     if ( Mesh is null
-         && HasGrid( precision ) )
+         && Grid !is null )
     {
         Mesh = new MESH();
         Mesh.SetFromGrid( Grid );
@@ -2345,13 +2344,13 @@ void ReadObjMeshFile(
 
 // ~~
 
-void TessellateMesh(
-    float distance
+void SampleMesh(
+    float precision
     )
 {
-    writeln( "Tesselating mesh : ", distance );
+    writeln( "Sampling mesh : ", precision );
 
-    Grid = new GRID( distance );
+    Grid = new GRID( precision );
     Grid.SetFromMesh( Mesh );
     Mesh = null;
     Cloud = null;
@@ -2648,16 +2647,16 @@ void main(
 
             argument_array = argument_array[ 1 .. $ ];
         }
-        else if ( option == "--tessellate"
-                  && argument_array.length >= 2
+        else if ( option == "--sample"
+                  && argument_array.length >= 1
                   && IsReal( argument_array[ 0 ] )
-                  && HasMesh( precision ) )
+                  && HasMesh() )
         {
-            TessellateMesh(
+            SampleMesh(
                 argument_array[ 0 ].to!float(),
                 );
 
-            argument_array = argument_array[ 2 .. $ ];
+            argument_array = argument_array[ 1 .. $ ];
         }
         else if ( option == "--translate"
                   && argument_array.length >= 3
@@ -2744,7 +2743,7 @@ void main(
         }
         else if ( option == "--write-obj-mesh"
                   && argument_array.length >= 1
-                  && HasMesh( precision ) )
+                  && HasMesh() )
         {
             WriteObjMeshFile( argument_array[ 0 ] );
 
@@ -2773,7 +2772,7 @@ void main(
         writeln( "    --read-pts-cloud <file path> <precision>" );
         writeln( "    --read-obj-cloud <file path> <precision>" );
         writeln( "    --read-obj-mesh <file path>" );
-        writeln( "    --tessellate <distance> <precision>" );
+        writeln( "    --sample <precision>" );
         writeln( "    --translate <x> <y> <z>" );
         writeln( "    --scale <x> <y> <z>" );
         writeln( "    --rotate-x <degree angle>" );
@@ -2791,6 +2790,7 @@ void main(
         writeln( "    nebula --read-xyz-cloud cloud.xyz 0 --position-scaling 2 2 2 --read-xyz-cloud cloud.xyz --write-xyz-cloud merged_clouds.xyz" );
         writeln( "    nebula --read-pts-cloud cloud.pts 0.01 --write-pts-cloud decimated_cloud.pts" );
         writeln( "    nebula --read-pts-cloud cloud.pts 0.01 --write-obj-mesh triangulated_cloud.obj" );
+        writeln( "    nebula --read-obj-mesh mesh.obj --sample 0.1 --write-xyz-cloud sampled_cloud.xyz" );
         Abort( "Invalid arguments : " ~ argument_array.to!string() );
     }
 }

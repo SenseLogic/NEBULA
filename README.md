@@ -33,9 +33,9 @@ nebula <options>
 --read-cloud <file path> <precision> <skipped line count> <minimum field count> <maximum field count> <line prefix> <line format> : read a point cloud
 --read-xyz-cloud <file path> <precision> : read an XYZ point cloud
 --read-pts-cloud <file path> <precision> : read a PTS point cloud
---read-obj-cloud <file path> <precision> <tessellation> : read an OBJ point cloud
+--read-obj-cloud <file path> <precision> <samplion> : read an OBJ point cloud
 --read-obj-mesh <file path> : read an OBJ mesh
---tessellate <distance> : tessellate mesh
+--sample <precision> : sample mesh
 --translate <x> <y> <z> : translate the point cloud
 --scale <x> <y> <z> : translate the point cloud
 --rotate-x <degree angle> : rotate the point cloud around the X axis
@@ -73,6 +73,7 @@ nebula --read-pts-cloud cloud.pts 0 --scale 2 2 2 --rotate-z 45 --write-pts-clou
 nebula --read-xyz-cloud cloud.xyz 0 --position-scaling 2 2 2 --read-xyz-cloud cloud.xyz --write-xyz-cloud merged_clouds.xyz
 nebula --read-pts-cloud cloud.pts 0.01 --write-pts-cloud decimated_cloud.pts
 nebula --read-pts-cloud cloud.pts 0.01 --write-obj-mesh triangulated_cloud.obj
+nebula --read-obj-mesh mesh.obj --sample 0.1 --write-xyz-cloud sampled_cloud.xyz
 ```
 
 ![](https://github.com/senselogic/NEBULA/blob/master/SCREENSHOT/cloud.png)

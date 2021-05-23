@@ -21,3 +21,7 @@ set -x
 ../nebula --read-pts-cloud IN/bunny_2.pts 0.01 --write-obj-mesh OUT/triangulated_pts_bunny_2.obj
 ../nebula --read-pts-cloud IN/bunny_3.pts 0.01 --write-xyz-cloud OUT/decimated_pts_bunny_3.xyz
 ../nebula --read-pts-cloud IN/bunny_3.pts 0.01 --write-obj-mesh OUT/triangulated_pts_bunny_3.obj
+../nebula --read-obj-mesh IN/cube.obj --sample 0.1 --write-xyz-cloud OUT/sampled_obj_cube.xyz
+../nebula --read-obj-mesh IN/dodecahedron.obj --sample 0.1 --write-xyz-cloud OUT/sampled_obj_dodecahedron.xyz
+../nebula --read-obj-mesh IN/teapot.obj --sample 2 --write-xyz-cloud OUT/sampled_obj_teapot.xyz
+../nebula --read-obj-mesh IN/bunny.obj --sample 0.01 --write-xyz-cloud OUT/sampled_obj_bunny.xyz
