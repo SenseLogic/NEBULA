@@ -76,9 +76,12 @@ nebula --read-pts-cloud cloud.pts 0.01 --write-obj-mesh triangulated_cloud.obj
 nebula --read-obj-mesh mesh.obj --sample 0.1 --write-xyz-cloud sampled_cloud.xyz
 ```
 
-![](https://github.com/senselogic/NEBULA/blob/master/SCREENSHOT/cloud.png)
-![](https://github.com/senselogic/NEBULA/blob/master/SCREENSHOT/decimated_cloud.png)
-![](https://github.com/senselogic/NEBULA/blob/master/SCREENSHOT/triangulated_cloud.png)
+![](https://github.com/senselogic/NEBULA/blob/master/SCREENSHOT/bunny.png)
+![](https://github.com/senselogic/NEBULA/blob/master/SCREENSHOT/decimated_bunny.png)
+![](https://github.com/senselogic/NEBULA/blob/master/SCREENSHOT/triangulated_bunny.png)
+
+![](https://github.com/senselogic/NEBULA/blob/master/SCREENSHOT/teapot.png)
+![](https://github.com/senselogic/NEBULA/blob/master/SCREENSHOT/sampled_teapot.png)
 
 ## Version
 
