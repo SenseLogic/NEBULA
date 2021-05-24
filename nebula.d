@@ -26,7 +26,7 @@ import std.conv : to;
 import std.file : write;
 import std.math : cos, round, sin, sqrt, PI;
 import std.stdio : readln, writeln, File;
-import std.string : format, indexOf, split, startsWith, strip;
+import std.string : endsWith, format, indexOf, replace, split, startsWith, strip;
 
 // -- CONSTANTS
 
@@ -807,6 +807,76 @@ class CLOUD
 
     // -- INQUIRIES
 
+    string GetLine(
+        string line_format
+        )
+    {
+        return
+            line_format
+                .replace( "{{point_count}}", PointArray.length.GetText() )
+                .replace( "\\n", "\n" )
+                .replace( "\\r", "\r" )
+                .replace( "\\t", "\t" );
+    }
+
+    // ~~
+
+    string GetLine(
+        ref POINT point,
+        string line_format
+        )
+    {
+        return
+            GetLine(
+                line_format
+                    .replace( "{{x}}", ( -point.PositionVector.X ).GetText() )
+                    .replace( "{{y}}", ( -point.PositionVector.Y ).GetText() )
+                    .replace( "{{z}}", ( -point.PositionVector.Z ).GetText() )
+                    .replace( "{{X}}", point.PositionVector.X.GetText() )
+                    .replace( "{{Y}}", point.PositionVector.Y.GetText() )
+                    .replace( "{{Z}}", point.PositionVector.Z.GetText() )
+                    .replace( "{{R}}", point.ColorVector.X.GetText() )
+                    .replace( "{{G}}", point.ColorVector.Y.GetText() )
+                    .replace( "{{B}}", point.ColorVector.Z.GetText() )
+                    .replace( "{{I}}", point.ColorVector.W.GetText() )
+                );
+    }
+
+    // ~~
+
+    void WriteCloudFile(
+        string file_path,
+        string header_format,
+        string line_format,
+        string footer_format
+        )
+    {
+        string
+            footer,
+            header,
+            line;
+        File
+            file;
+
+        try
+        {
+            file.open( file_path, "w" );
+            file.write( GetLine( header_format ) );
+
+            foreach ( ref point; PointArray )
+            {
+                file.write( GetLine( point, line_format ) );
+            }
+
+            file.write( GetLine( footer_format ) );
+            file.close();
+        }
+        catch ( Exception exception )
+        {
+            Abort( "Can't write file : " ~ file_path, exception );
+        }
+    }
+
     void WriteXyzCloudFile(
         string file_path
         )
@@ -821,12 +891,12 @@ class CLOUD
             foreach ( ref point; PointArray )
             {
                 file.write(
-                    format(
-                        "%.7f %.7f %.7f\n",
-                        point.PositionVector.X,
-                        point.PositionVector.Y,
-                        point.PositionVector.Z
-                        )
+                    point.PositionVector.X.GetText(),
+                    " ",
+                    point.PositionVector.Y.GetText(),
+                    " ",
+                    point.PositionVector.Z.GetText(),
+                    "\n"
                     );
             }
 
@@ -855,16 +925,20 @@ class CLOUD
             foreach ( ref point; PointArray )
             {
                 file.write(
-                    format(
-                        "%.7f %.7f %.7f %.7f %.7f %.7f %.7f\n",
-                        point.PositionVector.X,
-                        point.PositionVector.Y,
-                        point.PositionVector.Z,
-                        point.ColorVector.W,
-                        point.ColorVector.X,
-                        point.ColorVector.Y,
-                        point.ColorVector.Z
-                        )
+                    point.PositionVector.X.GetText(),
+                    " ",
+                    point.PositionVector.Y.GetText(),
+                    " ",
+                    point.PositionVector.Z.GetText(),
+                    " ",
+                    point.ColorVector.W.GetText(),
+                    " ",
+                    point.ColorVector.X.GetText(),
+                    " ",
+                    point.ColorVector.Y.GetText(),
+                    " ",
+                    point.ColorVector.Z.GetText(),
+                    "\n"
                     );
             }
 
@@ -1516,16 +1590,21 @@ class MESH
                 foreach ( ref point; PointArray )
                 {
                     file.write(
-                        format(
-                            "v %.7f %.7f %.7f %.7f %.7f %.7f %.7f\n",
-                            point.PositionVector.X,
-                            point.PositionVector.Y,
-                            point.PositionVector.Z,
-                            point.ColorVector.W,
-                            point.ColorVector.X,
-                            point.ColorVector.Y,
-                            point.ColorVector.Z
-                            )
+                        "v ",
+                        point.PositionVector.X.GetText(),
+                        " ",
+                        point.PositionVector.Y.GetText(),
+                        " ",
+                        point.PositionVector.Z.GetText(),
+                        " ",
+                        point.ColorVector.W.GetText(),
+                        " ",
+                        point.ColorVector.X.GetText(),
+                        " ",
+                        point.ColorVector.Y.GetText(),
+                        " ",
+                        point.ColorVector.Z.GetText(),
+                        "\n"
                         );
                 }
             }
@@ -1534,12 +1613,13 @@ class MESH
                 foreach ( ref point; PointArray )
                 {
                     file.write(
-                        format(
-                            "v %.7f %.7f %.7f\n",
-                            point.PositionVector.X,
-                            point.PositionVector.Y,
-                            point.PositionVector.Z
-                            )
+                        "v ",
+                        point.PositionVector.X.GetText(),
+                        " ",
+                        point.PositionVector.Y.GetText(),
+                        " ",
+                        point.PositionVector.Z.GetText(),
+                        "\n"
                         );
                 }
             }
@@ -1551,12 +1631,13 @@ class MESH
                       point_index_index += 3 )
                 {
                     file.write(
-                        format(
-                            "f %d %d %d\n",
-                            PointIndexArray[ point_index_index ] + 1,
-                            PointIndexArray[ point_index_index + 1 ] + 1,
-                            PointIndexArray[ point_index_index + 2 ] + 1
-                            )
+                        "f ",
+                        ( PointIndexArray[ point_index_index ] + 1 ).GetText(),
+                        " ",
+                        ( PointIndexArray[ point_index_index + 1 ] + 1 ).GetText(),
+                        " ",
+                        ( PointIndexArray[ point_index_index + 2 ] + 1 ).GetText(),
+                        "\n"
                         );
                 }
             }
@@ -1886,6 +1967,49 @@ bool IsReal(
     return
         character_index > 0
         && character_index == text.length;
+}
+
+// ~~
+
+string GetText(
+    long integer
+    )
+{
+    return integer.to!string();
+}
+
+// ~~
+
+string GetText(
+    float real_
+    )
+{
+    string
+        text;
+
+    text = format( "%f", real_ );
+
+    if ( text.indexOf( '.' ) >= 0 )
+    {
+        while ( text.endsWith( '0') )
+        {
+            text = text[ 0 .. $ - 1 ];
+        }
+
+        if ( text.endsWith( '.' ) )
+        {
+            text = text[ 0 .. $ - 1 ];
+        }
+    }
+
+    if ( text == "-0" )
+    {
+        return "0";
+    }
+    else
+    {
+        return text;
+    }
 }
 
 // ~~
@@ -2430,6 +2554,20 @@ void DecimateCloud(
 
 // ~~
 
+void WriteCloudFile(
+    string file_path,
+    string header_format,
+    string line_format,
+    string footer_format
+    )
+{
+    writeln( "Writing file : ", file_path );
+
+    Cloud.WriteCloudFile( file_path, header_format, line_format, footer_format );
+}
+
+// ~~
+
 void WriteXyzCloudFile(
     string file_path
     )
@@ -2725,6 +2863,19 @@ void main(
             precision = argument_array[ 0 ].to!float();
             argument_array = argument_array[ 1 .. $ ];
         }
+        else if ( option == "--write-cloud"
+                  && argument_array.length >= 4
+                  && HasCloud() )
+        {
+            WriteCloudFile(
+                argument_array[ 0 ],
+                argument_array[ 1 ],
+                argument_array[ 2 ],
+                argument_array[ 3 ]
+                );
+
+            argument_array = argument_array[ 4 .. $ ];
+        }
         else if ( option == "--write-xyz-cloud"
                   && argument_array.length >= 1
                   && HasCloud() )
@@ -2779,6 +2930,7 @@ void main(
         writeln( "    --rotate-y <degree angle>" );
         writeln( "    --rotate-z <degree angle>" );
         writeln( "    --decimate <precision>" );
+        writeln( "    --write-cloud <header format> <line format> <footer format>" );
         writeln( "    --write-xyz-cloud <file path>" );
         writeln( "    --write-pts-cloud <file path>" );
         writeln( "    --write-obj-mesh <file path>" );

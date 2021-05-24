@@ -3,6 +3,7 @@ set -x
 ../nebula --read-cloud IN/triangle.xyz 0 0 3 3 "" xZY --write-xyz-cloud OUT/flipped_xyz_triangle.xyz
 ../nebula --read-cloud IN/triangle.pts 0 1 3 7 "" xZYIRGB --write-pts-cloud OUT/flipped_pts_triangle.pts
 ../nebula --read-cloud IN/triangle.pts 0 1 3 7 "" xZYIRGB --decimate 1 --write-obj-mesh OUT/triangulated_flipped_pts_triangle.obj
+../nebula --read-pts-cloud IN/triangle.pts 0 --write-cloud OUT/written_pts_triangle.pts "{{point_count}}\n" "{{x}} {{Z}} {{Y}} {{I}} {{R}} {{G}} {{B}}\n" "\n"
 ../nebula --read-pts-cloud IN/triangle.pts 0 --write-xyz-cloud OUT/converted_pts_triangle.xyz
 ../nebula --read-pts-cloud IN/triangle.pts 1 --write-pts-cloud OUT/decimated_pts_triangle.pts
 ../nebula --read-pts-cloud IN/triangle.pts 1 --write-obj-mesh OUT/triangulated_pts_triangle.obj
