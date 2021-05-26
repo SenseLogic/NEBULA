@@ -33,6 +33,7 @@ nebula <options>
 --read-cloud <file path> <precision> <skipped line count> <minimum field count> <maximum field count> <line prefix> <line format> : read a point cloud
 --read-xyz-cloud <file path> <precision> : read an XYZ point cloud
 --read-pts-cloud <file path> <precision> : read a PTS point cloud
+--read-e57-cloud <file path> <precision> : read an E57 point cloud
 --read-obj-cloud <file path> <precision> <samplion> : read an OBJ point cloud
 --read-obj-mesh <file path> : read an OBJ mesh
 --sample <precision> : sample mesh
@@ -48,7 +49,7 @@ nebula <options>
 --write-obj-mesh <file path> : write an OBJ mesh
 ```
 
-### Line format
+### Input line format
 
 ```
 _ : ignored
@@ -62,6 +63,21 @@ I : intensity
 R : red
 G : green
 B : blue
+```
+
+### Output line format
+
+```
+{{x}} : -X
+{{y}} : -Y
+{{z}} : -Z
+{{X}} : +X
+{{Y}} : +Y
+{{Z}} : +Z
+{{I}} : intensity
+{{R}} : red
+{{G}} : green
+{{B}} : blue
 ```
 
 ## Examples
@@ -94,6 +110,6 @@ Eric Pelzer (ecstatic.coder@gmail.com).
 
 ## License
 
-This project is licensed under the GNU General Public License version 3.
+This project is licensed under the GNU Lesser General Public License version 3.
 
 See the [LICENSE.md](LICENSE.md) file for details.

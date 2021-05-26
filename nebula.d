@@ -6,15 +6,15 @@
     Copyright (C) 2021 Eric Pelzer (ecstatic.coder@gmail.com)
 
     Nebula is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
+    it under the terms of the GNU Lesser General Public License as published by
     the Free Software Foundation, version 3.
 
     Nebula is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+    GNU Lesser General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
+    You should have received a copy of the GNU Lesser General Public License
     along with Nebula.  If not, see <http://www.gnu.org/licenses/>.
 */
 
@@ -299,7 +299,565 @@ const long[][]
         []
     ];
 
-// -- TYPE
+// -- TYPES
+
+class PROPERTY
+{
+    // -- ATTRIBUTES
+
+    string
+        Name,
+        Value;
+
+    // -- OPERATIONS
+
+    void SetFromText(
+        string text
+        )
+    {
+        string[]
+            part_array;
+
+        part_array = text.split( "=" );
+
+        Name = part_array[ 0 ];
+
+        if ( part_array.length > 1 )
+        {
+            Value = part_array[ 1 ];
+        }
+    }
+}
+
+// ~~
+
+class TAG
+{
+    // -- ATTRIBUTES
+
+    string
+        Name;
+    PROPERTY[]
+        PropertyArray;
+    TAG[]
+        SubTagArray;
+
+    // -- INQUIRIES
+
+    bool FindTag(
+        ref TAG found_tag,
+        string tag_name
+        )
+    {
+        if ( Name == tag_name )
+        {
+            found_tag = this;
+
+            return true;
+        }
+        else
+        {
+            foreach ( sub_tag; SubTagArray )
+            {
+                if ( sub_tag.FindTag( found_tag, tag_name ) )
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
+
+    // ~~
+
+    string GetPropertyValue(
+        string property_name,
+        string default_property_value = ""
+        )
+    {
+        foreach ( property; PropertyArray )
+        {
+            if ( property.Name == property_name )
+            {
+                return property.Value;
+            }
+        }
+
+        return default_property_value;
+    }
+
+    // -- OPERATIONS
+
+    void SetFromText(
+        string text
+        )
+    {
+        string[]
+            part_array;
+        PROPERTY
+            property;
+
+        part_array = text.replace( "\"", "" ).replace( "'", "" ).split( " " );
+
+        Name = part_array[ 0 ];
+
+        foreach ( property_text; part_array[ 1 .. $ ] )
+        {
+            if ( property_text != "" )
+            {
+                property = new PROPERTY();
+                property.SetFromText( property_text );
+                PropertyArray ~= property;
+            }
+        }
+    }
+}
+
+// ~~
+
+class DOCUMENT : TAG
+{
+    // -- OPERATIONS
+
+    override void SetFromText(
+        string text
+        )
+    {
+        long
+            post_tag_character_index,
+            tag_character_index;
+        string
+            tag_text;
+        TAG
+            tag;
+        TAG[]
+            tag_array;
+
+        text = text.replace( "\r", "" ).replace( "\n", " " ).replace( "\t", " " );
+
+        while ( text.indexOf( "  " ) >= 0 )
+        {
+            text = text.replace( "  ", " " );
+        }
+
+        for ( tag_character_index = 0;
+              tag_character_index < text.length;
+              ++tag_character_index )
+        {
+            if ( text[ tag_character_index ] == '<' )
+            {
+                post_tag_character_index = tag_character_index;
+
+                while( text[ post_tag_character_index ] != '>' )
+                {
+                    ++post_tag_character_index;
+                }
+
+                tag_text = text[ tag_character_index + 1 .. post_tag_character_index ];
+                writeln( "<", tag_text, ">" );
+
+                if ( tag_text.startsWith( "/" ) )
+                {
+                    tag_array = tag_array[ 0 .. $ - 1 ];
+                }
+                else
+                {
+                    tag = new TAG();
+
+                    if ( tag_text.endsWith( "/" ) )
+                    {
+                        tag.SetFromText( tag_text[ 0 .. $ - 1 ] );
+                    }
+                    else
+                    {
+                        tag.SetFromText( tag_text );
+                    }
+
+                    if ( tag_array.length == 0 )
+                    {
+                        SubTagArray ~= tag;
+                    }
+                    else
+                    {
+                        tag_array[ $ - 1 ].SubTagArray ~= tag;
+                    }
+
+                    if ( !tag_text.endsWith( "/" ) )
+                    {
+                        tag_array ~= tag;
+                    }
+                }
+
+                tag_character_index = post_tag_character_index;
+            }
+        }
+    }
+}
+
+// ~~
+
+class E57_FILE
+{
+    // -- TYPES
+
+    class POINT_FIELD
+    {
+        // -- ATTRIBUTES
+
+        string
+            Name,
+            Type;
+        bool
+            IsReal;
+        double
+            Scale = 1.0,
+            MinimumReal,
+            MaximumReal;
+        long
+            MinimumInteger,
+            MaximumInteger;
+        long
+            BitIndex,
+            BitCount;
+    }
+
+    // -- ATTRIBUTES
+
+    File
+        File_;
+    long
+        FileByteIndex,
+        FileByteCount;
+    ubyte[ 1024 ]
+        BufferByteArray;
+    long
+        BufferFileByteIndex,
+        PostBufferFileByteIndex;
+    DOCUMENT
+        Document;
+    bool
+        IsCompressed;
+    long
+        PointCount,
+        PointFileByteIndex,
+        PointBitCount,
+        PointIndex;
+    POINT_FIELD[]
+        PointFieldArray;
+    long
+        XPointFieldIndex,
+        YPointFieldIndex,
+        ZPointFieldIndex,
+        IPointFieldIndex,
+        RPointFieldIndex,
+        GPointFieldIndex,
+        BPointFieldIndex;
+
+    // -- CONSTRUCTORS
+
+    this(
+        )
+    {
+        XPointFieldIndex = -1;
+        YPointFieldIndex = -1;
+        ZPointFieldIndex = -1;
+        IPointFieldIndex = -1;
+        RPointFieldIndex = -1;
+        GPointFieldIndex = -1;
+        BPointFieldIndex = -1;
+    }
+
+    // ~~
+
+    long GetFileByteIndex(
+        long byte_index
+        )
+    {
+        return byte_index + ( byte_index / 1020 ) * 4;
+    }
+
+    // ~~
+
+    long GetByteIndex(
+        long file_byte_index
+        )
+    {
+        return file_byte_index - ( file_byte_index >> 10 ) * 4;
+    }
+
+    // -- OPERATIONS
+
+    void Open(
+        string file_path
+        )
+    {
+        File_.open( file_path, "r" );
+        FileByteCount = ReadNatural( 16, 8 );
+    }
+
+    // ~~
+
+    ubyte ReadByte(
+        long byte_index
+        )
+    {
+        long
+            file_byte_index;
+
+        file_byte_index = GetFileByteIndex( byte_index );
+
+        if ( file_byte_index < BufferFileByteIndex
+             || file_byte_index >= PostBufferFileByteIndex )
+        {
+            BufferFileByteIndex = ( file_byte_index >> 10 ) << 10;
+            PostBufferFileByteIndex = BufferFileByteIndex + 1024;
+
+            if ( BufferFileByteIndex != FileByteIndex )
+            {
+                File_.seek( BufferFileByteIndex );
+            }
+
+            File_.rawRead( BufferByteArray );
+            FileByteIndex = PostBufferFileByteIndex;
+        }
+
+        return BufferByteArray[ file_byte_index - BufferFileByteIndex ];
+    }
+
+    // ~~
+
+    ulong ReadNatural(
+        long byte_index,
+        long byte_count
+        )
+    {
+        long
+            read_byte_index;
+        ulong
+            natural,
+            read_byte;
+
+        natural = 0;
+
+        for ( read_byte_index = 0;
+              read_byte_index < byte_count;
+              ++read_byte_index )
+        {
+            read_byte = ReadByte( byte_index + read_byte_index );
+            natural |= read_byte << ( read_byte_index << 3 );
+        }
+
+        return natural;
+    }
+
+    // ~~
+
+    ulong ReadNatural(
+        long byte_index,
+        long bit_index,
+        long bit_count
+        )
+    {
+        long
+            read_bit_index;
+        ulong
+            natural,
+            read_byte;
+
+        for ( read_bit_index = 0;
+              read_bit_index < bit_count;
+              ++bit_index )
+        {
+            read_byte = ReadByte( byte_index + ( ( bit_index + read_bit_index ) >> 3 ) );
+
+            natural = natural << 1;
+
+            if ( read_byte & ( 1 << ( ( bit_index + read_bit_index ) & 7 ) ) )
+            {
+                natural |= 1 << read_bit_index;
+            }
+        }
+
+        return natural;
+    }
+
+    // ~~
+
+    void ReadByteArray(
+        ubyte[] byte_array,
+        long byte_index,
+        long byte_count
+        )
+    {
+        long
+            read_byte_index;
+
+        for ( read_byte_index = 0;
+              read_byte_index < byte_count;
+              ++read_byte_index )
+        {
+            byte_array[ read_byte_index ] = ReadByte( byte_index + read_byte_index );
+        }
+    }
+
+    // ~~
+
+    string ReadText(
+        long byte_index,
+        long byte_count
+        )
+    {
+        long
+            read_byte_index;
+        string
+            text;
+
+        for ( read_byte_index = 0;
+              read_byte_index < byte_count;
+              ++read_byte_index )
+        {
+            text ~= cast( char )ReadByte( byte_index + read_byte_index );
+        }
+
+        return text;
+    }
+
+    // ~~
+
+    void ReadDocument(
+        )
+    {
+        long
+            point_field_index;
+        string
+            point_field_minimum,
+            point_field_maximum,
+            point_field_name,
+            point_field_precision,
+            point_field_scale,
+            point_field_type;
+        POINT_FIELD
+            point_field;
+        TAG
+            points_tag,
+            prototype_tag;
+
+        Document = new DOCUMENT();
+        Document.SetFromText(
+            ReadText(
+                GetByteIndex( ReadNatural( 24, 8 ) ),
+                ReadNatural( 32, 8 )
+                )
+            );
+
+        if ( Document.FindTag( points_tag, "points" )
+             && points_tag.FindTag( prototype_tag, "prototype" )
+             && prototype_tag.GetPropertyValue( "type" ) == "Structure" )
+        {
+            IsCompressed = ( points_tag.GetPropertyValue( "type" ) == "CompressedVector" );
+            PointFileByteIndex = points_tag.GetPropertyValue( "fileOffset" ).to!long();
+            PointCount = points_tag.GetPropertyValue( "recordCount" ).to!long();
+
+            foreach ( point_field_tag; prototype_tag.SubTagArray )
+            {
+                point_field_name = point_field_tag.Name;
+                point_field_type = point_field_tag.GetPropertyValue( "type" );
+                point_field_minimum = point_field_tag.GetPropertyValue( "minimum", "0" );
+                point_field_maximum = point_field_tag.GetPropertyValue( "maximum", "0" );
+                point_field_scale = point_field_tag.GetPropertyValue( "scale", "1.0" );
+                point_field_precision = point_field_tag.GetPropertyValue( "precision" );
+
+                point_field = new POINT_FIELD();
+                point_field.Name = point_field_name;
+                point_field.Type = point_field_type;
+                point_field.IsReal = ( point_field_type == "Float" );
+                point_field.Scale = point_field_scale.to!float();
+
+                if ( point_field.IsReal )
+                {
+                    point_field.MinimumReal = point_field_minimum.to!float();
+                    point_field.MaximumReal = point_field_maximum.to!float();
+
+                    if ( point_field_precision == "single" )
+                    {
+                        point_field.BitCount = 32;
+                    }
+                    else
+                    {
+                        point_field.BitCount = 64;
+                    }
+                }
+                else
+                {
+                    point_field.MinimumInteger = point_field_minimum.to!long();
+                    point_field.MaximumInteger = point_field_maximum.to!long();
+
+                    point_field.BitCount = 1;
+
+                    while ( ( 1u << ( point_field.BitCount - 1 ) ) < point_field.MaximumInteger )
+                    {
+                        ++point_field.BitCount;
+                    }
+                }
+
+                point_field.BitIndex = PointBitCount;
+                PointBitCount += point_field.BitCount;
+
+                point_field_index = PointFieldArray.length;
+                PointFieldArray ~= point_field;
+
+                if ( point_field_name == "cartesianX" )
+                {
+                    XPointFieldIndex = point_field_index;
+                }
+                else if ( point_field_name == "cartesianY" )
+                {
+                    YPointFieldIndex = point_field_index;
+                }
+                else if ( point_field_name == "cartesianZ" )
+                {
+                    ZPointFieldIndex = point_field_index;
+                }
+                else if ( point_field_name == "intensity" )
+                {
+                    IPointFieldIndex = point_field_index;
+                }
+                else if ( point_field_name == "colorRed" )
+                {
+                    RPointFieldIndex = point_field_index;
+                }
+                else if ( point_field_name == "colorGreen" )
+                {
+                    GPointFieldIndex = point_field_index;
+                }
+                else if ( point_field_name == "colorBlue" )
+                {
+                    BPointFieldIndex = point_field_index;
+                }
+            }
+        }
+    }
+
+    // ~~
+
+    bool ReadPoint(
+        ref POINT point
+        )
+    {
+        return false;
+    }
+
+    // ~~
+
+    void Close(
+        )
+    {
+        File_.close();
+    }
+}
+
+// ~~
 
 struct VECTOR_3
 {
@@ -679,6 +1237,82 @@ struct POINT
 
     // -- INQUIRIES
 
+    POINT GetTransformedPoint(
+        )
+    {
+        POINT
+            transformed_point;
+
+        transformed_point = this;
+
+        transformed_point.PositionVector.Translate(
+            PositionOffsetVector.X,
+            PositionOffsetVector.Y,
+            PositionOffsetVector.Z
+            );
+
+        transformed_point.PositionVector.Scale(
+            PositionScalingVector.X,
+            PositionScalingVector.Y,
+            PositionScalingVector.Z
+            );
+
+        if ( PositionRotationVector.Z != 0.0 )
+        {
+            transformed_point.PositionVector.RotateAroundZ(
+                PositionRotationVector.Z.cos(),
+                PositionRotationVector.Z.sin()
+                );
+        }
+
+        if ( PositionRotationVector.X != 0.0 )
+        {
+            transformed_point.PositionVector.RotateAroundX(
+                PositionRotationVector.X.cos(),
+                PositionRotationVector.X.sin()
+                );
+        }
+
+        if ( PositionRotationVector.Y != 0.0 )
+        {
+            transformed_point.PositionVector.RotateAroundY(
+                PositionRotationVector.Y.cos(),
+                PositionRotationVector.Y.sin()
+                );
+        }
+
+        transformed_point.PositionVector.Translate(
+            PositionTranslationVector.X,
+            PositionTranslationVector.Y,
+            PositionTranslationVector.Z
+            );
+
+        transformed_point.ColorVector.Translate(
+            ColorOffsetVector.X,
+            ColorOffsetVector.Y,
+            ColorOffsetVector.Z,
+            ColorOffsetVector.W
+            );
+
+        transformed_point.ColorVector.Scale(
+            ColorScalingVector.X,
+            ColorScalingVector.Y,
+            ColorScalingVector.Z,
+            ColorScalingVector.W
+            );
+
+        transformed_point.ColorVector.Translate(
+            ColorTranslationVector.X,
+            ColorTranslationVector.Y,
+            ColorTranslationVector.Z,
+            ColorTranslationVector.W
+            );
+
+        return transformed_point;
+    }
+
+    // ~~
+
     long GetCellIndex(
         float one_over_precision
         )
@@ -717,7 +1351,7 @@ struct POINT
     // ~~
 
     void AddPoint(
-        ref POINT point
+        POINT point
         )
     {
         PositionVector.AddVector( point.PositionVector );
@@ -954,7 +1588,7 @@ class CLOUD
     // -- OPERATIONS
 
     void AddPoint(
-        ref POINT point
+        POINT point
         )
     {
         PointArray ~= point;
@@ -1095,7 +1729,7 @@ struct CELL
     // ~~
 
     void AddPoint(
-        ref POINT point
+        POINT point
         )
     {
         ++PointCount;
@@ -1214,7 +1848,7 @@ class GRID
     // -- OPERATIONS
 
     void AddPoint(
-        ref POINT point
+        POINT point
         )
     {
         long
@@ -1691,7 +2325,7 @@ class MESH
                     point.PositionVector.Y = part_array[ 2 ].to!float();
                     point.PositionVector.Z = part_array[ 3 ].to!float();
 
-                    PointArray ~= point;
+                    PointArray ~= point.GetTransformedPoint();
                 }
                 else if ( line.startsWith( "f " ) )
                 {
@@ -1730,7 +2364,7 @@ class MESH
     // ~~
 
     void AddPoint(
-        ref POINT point
+        POINT point
         )
     {
         long
@@ -2194,79 +2828,16 @@ void MakeCloudOrGrid(
 // ~~
 
 void AddPoint(
-    ref POINT point
+    POINT point
     )
 {
-    point.PositionVector.Translate(
-        PositionOffsetVector.X,
-        PositionOffsetVector.Y,
-        PositionOffsetVector.Z
-        );
-
-    point.PositionVector.Scale(
-        PositionScalingVector.X,
-        PositionScalingVector.Y,
-        PositionScalingVector.Z
-        );
-
-    if ( PositionRotationVector.Z != 0.0 )
-    {
-        point.PositionVector.RotateAroundZ(
-            PositionRotationVector.Z.cos(),
-            PositionRotationVector.Z.sin()
-            );
-    }
-
-    if ( PositionRotationVector.X != 0.0 )
-    {
-        point.PositionVector.RotateAroundX(
-            PositionRotationVector.X.cos(),
-            PositionRotationVector.X.sin()
-            );
-    }
-
-    if ( PositionRotationVector.Y != 0.0 )
-    {
-        point.PositionVector.RotateAroundY(
-            PositionRotationVector.Y.cos(),
-            PositionRotationVector.Y.sin()
-            );
-    }
-
-    point.PositionVector.Translate(
-        PositionTranslationVector.X,
-        PositionTranslationVector.Y,
-        PositionTranslationVector.Z
-        );
-
-    point.ColorVector.Translate(
-        ColorOffsetVector.X,
-        ColorOffsetVector.Y,
-        ColorOffsetVector.Z,
-        ColorOffsetVector.W
-        );
-
-    point.ColorVector.Scale(
-        ColorScalingVector.X,
-        ColorScalingVector.Y,
-        ColorScalingVector.Z,
-        ColorScalingVector.W
-        );
-
-    point.ColorVector.Translate(
-        ColorTranslationVector.X,
-        ColorTranslationVector.Y,
-        ColorTranslationVector.Z,
-        ColorTranslationVector.W
-        );
-
     if ( Cloud !is null )
     {
-        Cloud.AddPoint( point );
+        Cloud.AddPoint( point.GetTransformedPoint() );
     }
     else if ( Grid !is null )
     {
-        Grid.AddPoint( point );
+        Grid.AddPoint( point.GetTransformedPoint() );
     }
 }
 
@@ -2442,6 +3013,34 @@ void ReadPtsCloudFile(
     )
 {
     ReadCloudFile( file_path, precision, 0, 3, 7, "", "XYZIRGB" );
+}
+
+// ~~
+
+void ReadE57CloudFile(
+    string file_path,
+    float precision
+    )
+{
+    E57_FILE
+        e57_file;
+    POINT
+        point;
+
+    writeln( "Reading file : ", file_path, " ", precision );
+
+    MakeCloudOrGrid( precision );
+
+    e57_file = new E57_FILE();
+    e57_file.Open( file_path );
+    e57_file.ReadDocument();
+
+    while ( e57_file.ReadPoint( point ) )
+    {
+        AddPoint( point.GetTransformedPoint() );
+    }
+
+    e57_file.Close();
 }
 
 // ~~
@@ -2764,6 +3363,18 @@ void main(
             precision = argument_array[ 1 ].to!float();
             argument_array = argument_array[ 2 .. $ ];
         }
+        else if ( option == "--read-e57-cloud"
+                  && argument_array.length >= 2
+                  && IsReal( argument_array[ 1 ] ) )
+        {
+            ReadE57CloudFile(
+                argument_array[ 0 ],
+                argument_array[ 1 ].to!float()
+                );
+
+            precision = argument_array[ 1 ].to!float();
+            argument_array = argument_array[ 2 .. $ ];
+        }
         else if ( option == "--read-obj-cloud"
                   && argument_array.length >= 3
                   && IsReal( argument_array[ 1 ] ) )
@@ -2921,6 +3532,7 @@ void main(
         writeln( "    --read-cloud <file path> <precision> <skipped line count> <minimum field count> <maximum field count> <line prefix> <line format>" );
         writeln( "    --read-xyz-cloud <file path> <precision>" );
         writeln( "    --read-pts-cloud <file path> <precision>" );
+        writeln( "    --read-e57-cloud <file path> <precision>" );
         writeln( "    --read-obj-cloud <file path> <precision>" );
         writeln( "    --read-obj-mesh <file path>" );
         writeln( "    --sample <precision>" );
