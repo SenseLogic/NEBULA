@@ -34,7 +34,7 @@ nebula <options>
 --read-xyz-cloud <file path> <precision> : read an XYZ point cloud
 --read-pts-cloud <file path> <precision> : read a PTS point cloud
 --read-e57-cloud <file path> <precision> : read an E57 point cloud
---read-obj-cloud <file path> <precision> <samplion> : read an OBJ point cloud
+--read-obj-cloud <file path> <precision> : read an OBJ point cloud
 --read-obj-mesh <file path> : read an OBJ mesh
 --sample <precision> : sample mesh
 --translate <x> <y> <z> : translate the point cloud
