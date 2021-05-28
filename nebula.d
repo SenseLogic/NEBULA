@@ -849,7 +849,7 @@ class E57_FILE
         {
             IsCompressed = ( points_tag.GetPropertyValue( "type" ) == "CompressedVector" );
             PointCount = points_tag.GetPropertyValue( "recordCount" ).to!long();
-            PointByteIndex = GetByteIndex( points_tag.GetPropertyValue( "fileOffset" ).to!long() );
+            PointByteIndex = GetByteIndex( points_tag.GetPropertyValue( "fileOffset" ).to!long() ) + 44;
             PointBitIndex = 0;
             PointBitCount = 0;
 
@@ -932,8 +932,7 @@ class E57_FILE
                 }
             }
 
-            PointByteIndex = DocumentByteIndex;    // :TODO:
-            PointBitIndex = -( PointCount * PointBitCount );    // :TODO:
+            PointBitIndex = 0;
         }
     }
 
