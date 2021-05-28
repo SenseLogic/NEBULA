@@ -28,6 +28,7 @@ set -x
 ../nebula --read-e57-cloud IN/cube.e57 0 --write-xyz-cloud OUT/converted_e57_cube.xyz
 ../nebula --read-e57-cloud IN/cube_2.e57 0 --write-xyz-cloud OUT/converted_e57_cube_2.xyz
 ../nebula --read-e57-cloud IN/cube_3.e57 0 --write-xyz-cloud OUT/converted_e57_cube_3.xyz
+../nebula --read-e57-cloud IN/teapot.e57 0 --write-xyz-cloud OUT/converted_e57_teapot.xyz
 ../nebula --read-obj-mesh IN/cube.obj --sample 0.1 --write-xyz-cloud OUT/sampled_obj_cube.xyz
 ../nebula --read-obj-mesh IN/dodecahedron.obj --sample 0.1 --write-xyz-cloud OUT/sampled_obj_dodecahedron.xyz
 ../nebula --read-obj-mesh IN/teapot.obj --sample 3 --write-xyz-cloud OUT/sampled_obj_teapot.xyz
