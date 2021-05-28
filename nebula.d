@@ -849,7 +849,7 @@ class E57_FILE
         {
             IsCompressed = ( points_tag.GetPropertyValue( "type" ) == "CompressedVector" );
             PointCount = points_tag.GetPropertyValue( "recordCount" ).to!long();
-            PointByteIndex = GetByteIndex( points_tag.GetPropertyValue( "fileOffset" ).to!long() ) + 44;
+            PointByteIndex = 44 + GetByteIndex( points_tag.GetPropertyValue( "fileOffset" ).to!long() );    // :TODO:
             PointBitIndex = 0;
             PointBitCount = 0;
 
