@@ -22,14 +22,13 @@ set -x
 ../nebula --read-pts-cloud IN/bunny_2.pts 0.01 --write-obj-mesh OUT/triangulated_pts_bunny_2.obj
 ../nebula --read-pts-cloud IN/bunny_3.pts 0.01 --write-xyz-cloud OUT/decimated_pts_bunny_3.xyz
 ../nebula --read-pts-cloud IN/bunny_3.pts 0.01 --write-obj-mesh OUT/triangulated_pts_bunny_3.obj
-../nebula --read-e57-cloud IN/bunny_integer_19.e57 0 --write-xyz-cloud OUT/converted_e57_bunny_integer_19.xyz
-../nebula --read-e57-cloud IN/bunny_integer_21.e57 0 --write-xyz-cloud OUT/converted_e57_bunny_integer_21.xyz
-../nebula --read-e57-cloud IN/bunny_integer_24.e57 0 --write-xyz-cloud OUT/converted_e57_bunny_integer_24.xyz
-../nebula --read-e57-cloud IN/bunny_integer_32.e57 0 --write-xyz-cloud OUT/converted_e57_bunny_integer_32.xyz
-../nebula --read-e57-cloud IN/bunny_real_32.e57 0 --write-xyz-cloud OUT/converted_e57_bunny_real_32.xyz
-../nebula --read-e57-cloud IN/bunny_real_64.e57 0 --write-xyz-cloud OUT/converted_e57_bunny_real_64.xyz
-../nebula --read-obj-mesh IN/bunny.obj --sample 0.01 --write-xyz-cloud OUT/sampled_obj_bunny.xyz
+../nebula --read-e57-cloud IN/triangle.e57 0 --write-xyz-cloud OUT/converted_e57_triangle.xyz
+../nebula --read-e57-cloud IN/triangle_2.e57 0 --write-xyz-cloud OUT/converted_e57_triangle_2.xyz
+../nebula --read-e57-cloud IN/triangle_3.e57 0 --write-xyz-cloud OUT/converted_e57_triangle_3.xyz
+../nebula --read-e57-cloud IN/cube.e57 0 --write-xyz-cloud OUT/converted_e57_cube.xyz
+../nebula --read-e57-cloud IN/cube_2.e57 0 --write-xyz-cloud OUT/converted_e57_cube_2.xyz
+../nebula --read-e57-cloud IN/cube_3.e57 0 --write-xyz-cloud OUT/converted_e57_cube_3.xyz
 ../nebula --read-obj-mesh IN/cube.obj --sample 0.1 --write-xyz-cloud OUT/sampled_obj_cube.xyz
 ../nebula --read-obj-mesh IN/dodecahedron.obj --sample 0.1 --write-xyz-cloud OUT/sampled_obj_dodecahedron.xyz
 ../nebula --read-obj-mesh IN/teapot.obj --sample 3 --write-xyz-cloud OUT/sampled_obj_teapot.xyz
-
+../nebula --read-obj-mesh IN/bunny.obj --sample 0.01 --write-xyz-cloud OUT/sampled_obj_bunny.xyz

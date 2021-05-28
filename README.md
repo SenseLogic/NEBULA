@@ -59,10 +59,10 @@ z : -Z
 X : +X
 Y : +Y
 Z : +Z
-I : intensity
 R : red
 G : green
 B : blue
+I : intensity
 ```
 
 ### Output line format
@@ -74,10 +74,10 @@ B : blue
 {{X}} : +X
 {{Y}} : +Y
 {{Z}} : +Z
-{{I}} : intensity
 {{R}} : red
 {{G}} : green
 {{B}} : blue
+{{I}} : intensity
 ```
 
 ## Examples
@@ -99,6 +99,10 @@ nebula --read-obj-mesh mesh.obj --sample 0.1 --write-xyz-cloud sampled_cloud.xyz
 
 ![](https://github.com/senselogic/NEBULA/blob/master/SCREENSHOT/teapot.png)
 ![](https://github.com/senselogic/NEBULA/blob/master/SCREENSHOT/sampled_teapot.png)
+
+## Limitations
+
+*   E57 file format support is partial.
 
 ## Version
 

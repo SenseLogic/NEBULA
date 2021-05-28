@@ -301,6 +301,18 @@ const long[][]
 
 // -- TYPES
 
+union SCALAR
+{
+    long
+        Natural;
+    double
+        Real64;
+    float[ 2 ]
+        Real32Array;
+}
+
+// ~~
+
 class PROPERTY
 {
     // -- ATTRIBUTES
@@ -434,6 +446,8 @@ class DOCUMENT : TAG
         TAG[]
             tag_array;
 
+        writeln( text );
+
         text = text.replace( "\r", "" ).replace( "\n", " " ).replace( "\t", " " );
 
         while ( text.indexOf( "  " ) >= 0 )
@@ -455,7 +469,6 @@ class DOCUMENT : TAG
                 }
 
                 tag_text = text[ tag_character_index + 1 .. post_tag_character_index ];
-                writeln( "<", tag_text, ">" );
 
                 if ( tag_text.startsWith( "/" ) )
                 {
@@ -497,50 +510,71 @@ class DOCUMENT : TAG
 
 // ~~
 
+class BUFFER
+{
+    // -- ATTRIBUTES
+
+    BUFFER
+        PriorBuffer,
+        NextBuffer;
+    long
+        FileByteIndex,
+        PostFileByteIndex;
+    ubyte[ 1024 ]
+        ByteArray;
+}
+
+// ~~
+
+class POINT_FIELD
+{
+    // -- ATTRIBUTES
+
+    string
+        Name,
+        Type;
+    bool
+        IsReal;
+    double
+        Scale = 1.0,
+        MinimumReal,
+        MaximumReal;
+    long
+        MinimumInteger,
+        MaximumInteger,
+        BitIndex,
+        BitCount;
+}
+
+// ~~
+
 class E57_FILE
 {
-    // -- TYPES
+    // -- CONSTANTS
 
-    class POINT_FIELD
-    {
-        // -- ATTRIBUTES
-
-        string
-            Name,
-            Type;
-        bool
-            IsReal;
-        double
-            Scale = 1.0,
-            MinimumReal,
-            MaximumReal;
-        long
-            MinimumInteger,
-            MaximumInteger;
-        long
-            BitIndex,
-            BitCount;
-    }
+    enum
+        MaximumBufferCount = 8;
 
     // -- ATTRIBUTES
 
     File
         File_;
     long
-        FileByteIndex,
-        FileByteCount;
-    ubyte[ 1024 ]
-        BufferByteArray;
+        FileByteCount,
+        DocumentByteIndex,
+        DocumentByteCount;
+    BUFFER
+        FirstBuffer;
     long
-        BufferFileByteIndex,
-        PostBufferFileByteIndex;
+        BufferCount;
     DOCUMENT
         Document;
     bool
         IsCompressed;
     long
         PointCount,
-        PointFileByteIndex,
+        PointByteIndex,
+        PointBitIndex,
         PointBitCount,
         PointIndex;
     POINT_FIELD[]
@@ -549,26 +583,12 @@ class E57_FILE
         XPointFieldIndex,
         YPointFieldIndex,
         ZPointFieldIndex,
-        IPointFieldIndex,
         RPointFieldIndex,
         GPointFieldIndex,
-        BPointFieldIndex;
+        BPointFieldIndex,
+        IPointFieldIndex;
 
     // -- CONSTRUCTORS
-
-    this(
-        )
-    {
-        XPointFieldIndex = -1;
-        YPointFieldIndex = -1;
-        ZPointFieldIndex = -1;
-        IPointFieldIndex = -1;
-        RPointFieldIndex = -1;
-        GPointFieldIndex = -1;
-        BPointFieldIndex = -1;
-    }
-
-    // ~~
 
     long GetFileByteIndex(
         long byte_index
@@ -594,6 +614,85 @@ class E57_FILE
     {
         File_.open( file_path, "r" );
         FileByteCount = ReadNatural( 16, 8 );
+        XPointFieldIndex = -1;
+        YPointFieldIndex = -1;
+        ZPointFieldIndex = -1;
+        RPointFieldIndex = -1;
+        GPointFieldIndex = -1;
+        BPointFieldIndex = -1;
+        IPointFieldIndex = -1;
+    }
+
+    // ~~
+
+    BUFFER GetBuffer(
+        long file_byte_index
+        )
+    {
+        BUFFER
+            buffer,
+            last_buffer,
+            next_buffer,
+            prior_buffer;
+
+        for ( buffer = FirstBuffer;
+              buffer !is null;
+              buffer = buffer.NextBuffer )
+        {
+            last_buffer = buffer;
+
+            if ( file_byte_index >= buffer.FileByteIndex
+                 && file_byte_index < buffer.PostFileByteIndex )
+            {
+                if ( FirstBuffer !is buffer )
+                {
+                    prior_buffer = buffer.PriorBuffer;
+                    next_buffer = buffer.NextBuffer;
+
+                    if ( prior_buffer !is null )
+                    {
+                        prior_buffer.NextBuffer = next_buffer;
+                    }
+
+                    if ( next_buffer !is null )
+                    {
+                        next_buffer.PriorBuffer = prior_buffer;
+                    }
+
+                    buffer.PriorBuffer = null;
+                    buffer.NextBuffer = FirstBuffer;
+
+                    FirstBuffer.PriorBuffer = buffer;
+                    FirstBuffer = buffer;
+                }
+
+                return buffer;
+            }
+        }
+
+        if ( BufferCount < MaximumBufferCount )
+        {
+            buffer = new BUFFER();
+            buffer.PriorBuffer = null;
+            buffer.NextBuffer = FirstBuffer;
+
+            if ( FirstBuffer !is null )
+            {
+                FirstBuffer.PriorBuffer = buffer;
+            }
+        }
+        else
+        {
+            buffer = last_buffer;
+        }
+
+        buffer.FileByteIndex = ( file_byte_index >> 10 ) << 10;
+        buffer.PostFileByteIndex = buffer.FileByteIndex + 1024;
+        File_.seek( buffer.FileByteIndex );
+        File_.rawRead( buffer.ByteArray );
+        FirstBuffer = buffer;
+
+        return buffer;
     }
 
     // ~~
@@ -604,25 +703,13 @@ class E57_FILE
     {
         long
             file_byte_index;
+        BUFFER
+            buffer;
 
         file_byte_index = GetFileByteIndex( byte_index );
+        buffer = GetBuffer( file_byte_index );
 
-        if ( file_byte_index < BufferFileByteIndex
-             || file_byte_index >= PostBufferFileByteIndex )
-        {
-            BufferFileByteIndex = ( file_byte_index >> 10 ) << 10;
-            PostBufferFileByteIndex = BufferFileByteIndex + 1024;
-
-            if ( BufferFileByteIndex != FileByteIndex )
-            {
-                File_.seek( BufferFileByteIndex );
-            }
-
-            File_.rawRead( BufferByteArray );
-            FileByteIndex = PostBufferFileByteIndex;
-        }
-
-        return BufferByteArray[ file_byte_index - BufferFileByteIndex ];
+        return buffer.ByteArray[ file_byte_index - buffer.FileByteIndex ];
     }
 
     // ~~
@@ -660,22 +747,27 @@ class E57_FILE
         )
     {
         long
-            read_bit_index;
-        ulong
-            natural,
+            bit_offset,
+            read_bit_index,
+            read_byte_index;
+        ubyte
             read_byte;
+        ulong
+            natural;
+
+        natural = 0;
 
         for ( read_bit_index = 0;
               read_bit_index < bit_count;
-              ++bit_index )
+              ++read_bit_index )
         {
-            read_byte = ReadByte( byte_index + ( ( bit_index + read_bit_index ) >> 3 ) );
+            bit_offset = bit_index + read_bit_index;
+            read_byte_index = byte_index + ( bit_offset >> 3 );
+            read_byte = ReadByte( read_byte_index );
 
-            natural = natural << 1;
-
-            if ( read_byte & ( 1 << ( ( bit_index + read_bit_index ) & 7 ) ) )
+            if ( read_byte & ( 1u << ( bit_offset & 7 ) ) )
             {
-                natural |= 1 << read_bit_index;
+                natural |= 1u << read_bit_index;
             }
         }
 
@@ -743,12 +835,12 @@ class E57_FILE
             points_tag,
             prototype_tag;
 
+        DocumentByteIndex = GetByteIndex( ReadNatural( 24, 8 ) );
+        DocumentByteCount = ReadNatural( 32, 8 );
+
         Document = new DOCUMENT();
         Document.SetFromText(
-            ReadText(
-                GetByteIndex( ReadNatural( 24, 8 ) ),
-                ReadNatural( 32, 8 )
-                )
+            ReadText( DocumentByteIndex, DocumentByteCount )
             );
 
         if ( Document.FindTag( points_tag, "points" )
@@ -756,8 +848,10 @@ class E57_FILE
              && prototype_tag.GetPropertyValue( "type" ) == "Structure" )
         {
             IsCompressed = ( points_tag.GetPropertyValue( "type" ) == "CompressedVector" );
-            PointFileByteIndex = points_tag.GetPropertyValue( "fileOffset" ).to!long();
             PointCount = points_tag.GetPropertyValue( "recordCount" ).to!long();
+            PointByteIndex = GetByteIndex( points_tag.GetPropertyValue( "fileOffset" ).to!long() );
+            PointBitIndex = 0;
+            PointBitCount = 0;
 
             foreach ( point_field_tag; prototype_tag.SubTagArray )
             {
@@ -792,7 +886,6 @@ class E57_FILE
                 {
                     point_field.MinimumInteger = point_field_minimum.to!long();
                     point_field.MaximumInteger = point_field_maximum.to!long();
-
                     point_field.BitCount = 1;
 
                     while ( ( 1u << ( point_field.BitCount - 1 ) ) < point_field.MaximumInteger )
@@ -801,7 +894,9 @@ class E57_FILE
                     }
                 }
 
-                point_field.BitIndex = PointBitCount;
+
+                point_field.BitIndex = PointBitIndex;
+                PointBitIndex += point_field.BitCount * PointCount;
                 PointBitCount += point_field.BitCount;
 
                 point_field_index = PointFieldArray.length;
@@ -819,10 +914,6 @@ class E57_FILE
                 {
                     ZPointFieldIndex = point_field_index;
                 }
-                else if ( point_field_name == "intensity" )
-                {
-                    IPointFieldIndex = point_field_index;
-                }
                 else if ( point_field_name == "colorRed" )
                 {
                     RPointFieldIndex = point_field_index;
@@ -835,7 +926,60 @@ class E57_FILE
                 {
                     BPointFieldIndex = point_field_index;
                 }
+                else if ( point_field_name == "intensity" )
+                {
+                    IPointFieldIndex = point_field_index;
+                }
             }
+
+            PointByteIndex = DocumentByteIndex;    // :TODO:
+            PointBitIndex = -( PointCount * PointBitCount );    // :TODO:
+        }
+    }
+
+    // ~~
+
+    float GetPointFieldValue(
+        long point_field_index
+        )
+    {
+        POINT_FIELD
+            point_field;
+        SCALAR
+            scalar;
+
+        if ( point_field_index >= 0 )
+        {
+            point_field = PointFieldArray[ point_field_index ];
+
+            scalar.Natural
+                = ReadNatural(
+                    PointByteIndex,
+                    PointBitIndex + point_field.BitIndex + PointIndex * point_field.BitCount,
+                    point_field.BitCount
+                    );
+
+            if ( point_field.IsReal )
+            {
+                if ( point_field.BitCount == 32 )
+                {
+                    return scalar.Real32Array[ 0 ];
+                }
+                else
+                {
+                    return scalar.Real64.to!float();
+                }
+            }
+            else
+            {
+                return
+                    ( ( point_field.MinimumInteger + scalar.Natural ).to!double()
+                      * point_field.Scale ).to!float();
+            }
+        }
+        else
+        {
+            return 0.0;
         }
     }
 
@@ -845,7 +989,24 @@ class E57_FILE
         ref POINT point
         )
     {
-        return false;
+        if ( PointIndex < PointCount )
+        {
+            point.PositionVector.X = GetPointFieldValue( XPointFieldIndex );
+            point.PositionVector.Y = GetPointFieldValue( YPointFieldIndex );
+            point.PositionVector.Z = GetPointFieldValue( ZPointFieldIndex );
+            point.ColorVector.X = GetPointFieldValue( RPointFieldIndex );
+            point.ColorVector.Y = GetPointFieldValue( GPointFieldIndex );
+            point.ColorVector.Z = GetPointFieldValue( BPointFieldIndex );
+            point.ColorVector.W = GetPointFieldValue( IPointFieldIndex );
+
+            ++PointIndex;
+
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
 
     // ~~
