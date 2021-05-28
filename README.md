@@ -102,7 +102,7 @@ nebula --read-obj-mesh mesh.obj --sample 0.1 --write-xyz-cloud sampled_cloud.xyz
 
 ## Limitations
 
-*   E57 file format support is partial.
+*   Incomplete support of the E57 file format.
 
 ## Version
 
