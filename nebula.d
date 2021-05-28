@@ -446,7 +446,7 @@ class DOCUMENT : TAG
         TAG[]
             tag_array;
 
-        writeln( text );
+        writeln( text.strip() );
 
         text = text.replace( "\r", "" ).replace( "\n", " " ).replace( "\t", " " );
 
