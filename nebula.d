@@ -542,8 +542,12 @@ class POINT_FIELD
     long
         MinimumInteger,
         MaximumInteger,
-        BitIndex,
         BitCount;
+    long[]
+        ByteCountArray,
+        ByteIndexArray;
+    long
+        ChunkIndex;
 }
 
 // ~~
@@ -573,6 +577,13 @@ class E57_FILE
         IsCompressed;
     long
         PointCount,
+        VectorByteIndex,
+        VectorIndexDepth,
+        VectorByteCount,
+        VectorChunkCount;
+    long[]
+        VectorChunkByteCountArray;
+    long
         PointByteIndex,
         PointBitIndex,
         PointBitCount,
@@ -817,6 +828,63 @@ class E57_FILE
 
     // ~~
 
+    void ReadVector(
+        )
+    {
+        long
+            point_field_byte_count,
+            point_field_byte_index,
+            point_field_count,
+            point_field_index,
+            vector_byte_index,
+            vector_chunk_byte_count,
+            vector_chunk_index;
+
+        vector_byte_index = VectorByteIndex;
+
+        VectorIndexDepth = ReadNatural( vector_byte_index, 8 );
+        vector_byte_index += 8;
+
+        VectorByteCount = ReadNatural( vector_byte_index, 8 );
+        vector_byte_index += 8;
+
+        vector_byte_index += 16;
+
+        VectorChunkCount = ReadNatural( vector_byte_index, 2 );
+        vector_byte_index += 2;
+
+        point_field_byte_index = 0;
+
+        for ( vector_chunk_index = 0;
+              vector_chunk_index < VectorChunkCount;
+              ++vector_chunk_index )
+        {
+            vector_chunk_byte_count = ReadNatural( vector_byte_index, 2 ) + 1;
+            vector_byte_index += 2;
+
+            VectorChunkByteCountArray ~= vector_chunk_byte_count;
+
+            point_field_count = ReadNatural( vector_byte_index, 2 );
+            vector_byte_index += 2;
+
+            for ( point_field_index = 0;
+                  point_field_index < point_field_count;
+                  ++point_field_index )
+            {
+                point_field_byte_count = ReadNatural( vector_byte_index, 2 );
+                vector_byte_index += 2;
+
+                PointFieldArray[ point_field_index ].ByteIndexArray ~= point_field_byte_index;
+                PointFieldArray[ point_field_index ].ByteCountArray ~= point_field_byte_count;
+                point_field_byte_index += point_field_byte_count;
+            }
+        }
+
+        PointByteIndex = vector_byte_index;
+    }
+
+    // ~~
+
     void ReadDocument(
         )
     {
@@ -849,8 +917,7 @@ class E57_FILE
         {
             IsCompressed = ( points_tag.GetPropertyValue( "type" ) == "CompressedVector" );
             PointCount = points_tag.GetPropertyValue( "recordCount" ).to!long();
-            PointByteIndex = 44 + GetByteIndex( points_tag.GetPropertyValue( "fileOffset" ).to!long() );    // :TODO:
-            PointBitIndex = 0;
+            VectorByteIndex = GetByteIndex( points_tag.GetPropertyValue( "fileOffset" ).to!long() );
             PointBitCount = 0;
 
             foreach ( point_field_tag; prototype_tag.SubTagArray )
@@ -894,11 +961,7 @@ class E57_FILE
                     }
                 }
 
-
-                point_field.BitIndex = PointBitIndex;
-                PointBitIndex += point_field.BitCount * PointCount;
                 PointBitCount += point_field.BitCount;
-
                 point_field_index = PointFieldArray.length;
                 PointFieldArray ~= point_field;
 
@@ -932,7 +995,7 @@ class E57_FILE
                 }
             }
 
-            PointBitIndex = 0;
+            ReadVector();
         }
     }
 
@@ -953,8 +1016,8 @@ class E57_FILE
 
             scalar.Natural
                 = ReadNatural(
-                    PointByteIndex,
-                    PointBitIndex + point_field.BitIndex + PointIndex * point_field.BitCount,
+                    PointByteIndex + point_field.ByteIndexArray[ point_field.ChunkIndex ],
+                    PointIndex * point_field.BitCount,
                     point_field.BitCount
                     );
 
