@@ -13,7 +13,7 @@ set -x
 ../nebula --read-xyz-cloud IN/cube.xyz 1 --position-scaling 2 2 2 --read-xyz-cloud IN/cube.xyz 1 --write-xyz-cloud OUT/decimated_merged_xyz_cubes.xyz
 ../nebula --read-xyz-cloud IN/cube.xyz 1 --position-scaling 2 2 2 --read-xyz-cloud IN/cube.xyz 1 --write-obj-mesh OUT/triangulated_merged_xyz_cubes.obj
 ../nebula --read-xyz-cloud IN/cube.xyz 0 --scale 1 2 3 --write-xyz-cloud OUT/scaled_xyz_cube.xyz
-../nebula --read-xyz-cloud IN/cube.xyz 0 --scale 2 2 2 --rotate-z 45 --write-xyz-cloud OUT/rotated_scaled_xyz_cube.xyz
+../nebula --read-xyz-cloud IN/cube.xyz 0 --scale 2 2 2 --rotate-z 45 --write-xyz-cloud OUT/transformed_xyz_cube.xyz
 ../nebula --read-xyz-cloud IN/cube.xyz 1 --write-xyz-cloud OUT/decimated_xyz_cube.xyz
 ../nebula --read-xyz-cloud IN/cube.xyz 1 --write-obj-mesh OUT/triangulated_xyz_cube.obj
 ../nebula --read-pts-cloud IN/bunny.pts 0.01 --write-xyz-cloud OUT/decimated_pts_bunny.xyz

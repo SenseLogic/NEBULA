@@ -3813,7 +3813,7 @@ void main(
         writeln( "    nebula --read-cloud cloud.xyz 0 0 3 3 \"\" xZY --write-xyz-cloud flipped_cloud.xyz" );
         writeln( "    nebula --read-cloud cloud.pts 0 1 7 7 \"\" xZYIRGB --write-pts-cloud flipped_cloud.pts" );
         writeln( "    nebula --read-pts-cloud cloud.pts 0 --write-xyz-cloud converted_cloud.xyz" );
-        writeln( "    nebula --read-pts-cloud cloud.pts 0 --scale 2 2 2 --rotate-z 45 --write-pts-cloud scaled_cloud.pts" );
+        writeln( "    nebula --read-pts-cloud cloud.pts 0 --scale 2 2 2 --rotate-z 45 --write-pts-cloud transformed_cloud.pts" );
         writeln( "    nebula --read-xyz-cloud cloud.xyz 0 --position-scaling 2 2 2 --read-xyz-cloud cloud.xyz --write-xyz-cloud merged_clouds.xyz" );
         writeln( "    nebula --read-pts-cloud cloud.pts 0.01 --write-pts-cloud decimated_cloud.pts" );
         writeln( "    nebula --read-pts-cloud cloud.pts 0.01 --write-obj-mesh triangulated_cloud.obj" );
