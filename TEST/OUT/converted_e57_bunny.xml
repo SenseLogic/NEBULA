@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<e57Root type="Structure"
+         xmlns="http://www.astm.org/COMMIT/E57/2010-e57-v1.0">
+  <formatName type="String"><![CDATA[ASTM E57 3D Imaging Data File]]></formatName>
+  <guid type="String"><![CDATA[{bab7b452-d2d8-4ac9-9b1e-1c0ba68e13ba}]]></guid>
+  <versionMajor type="Integer">1</versionMajor>
+  <versionMinor type="Integer"/>
+  <e57LibraryVersion type="String"><![CDATA[E57Format-2.2.0-AMD64_64-windows]]></e57LibraryVersion>
+  <coordinateMetadata type="String"/>
+  <creationDateTime type="Structure">
+    <dateTimeValue type="Float"/>
+    <isAtomicClockReferenced type="Integer"/>
+  </creationDateTime>
+  <data3D type="Vector" allowHeterogeneousChildren="1">
+    <vectorChild type="Structure">
+      <guid type="String"><![CDATA[{6e6dc6a4-69e2-44ea-b251-7d9620643ca0}]]></guid>
+      <name type="String"><![CDATA[bunny - Cloud]]></name>
+      <description type="String"><![CDATA[Created by CloudCompare v2.12 alpha]]></description>
+      <cartesianBounds type="Structure">
+        <xMinimum type="Float">-9.46889966726303101e-02</xMinimum>
+        <xMaximum type="Float">6.10090009868144989e-02</xMaximum>
+        <yMinimum type="Float">4.00109998881816864e-02</yMinimum>
+        <yMaximum type="Float">1.87321007251739502e-01</yMaximum>
+        <zMinimum type="Float">-6.18730001151561737e-02</zMinimum>
+        <zMaximum type="Float">5.87989985942840576e-02</zMaximum>
+      </cartesianBounds>
+      <points type="CompressedVector" fileOffset="48" recordCount="30571">
+        <prototype type="Structure">
+          <cartesianX type="Float" precision="single" minimum="-9.4688997e-02" maximum="6.1009001e-02">-1.6839998e-02</cartesianX>
+          <cartesianY type="Float" precision="single" minimum="4.0011000e-02" maximum="1.8732101e-01">1.1366601e-01</cartesianY>
+          <cartesianZ type="Float" precision="single" minimum="-6.1873000e-02" maximum="5.8798999e-02">-1.5370008e-03</cartesianZ>
+        </prototype>
+        <codecs type="Vector" allowHeterogeneousChildren="1">
+        </codecs>
+      </points>
+    </vectorChild>
+  </data3D>
+  <images2D type="Vector" allowHeterogeneousChildren="1">
+  </images2D>
+</e57Root>

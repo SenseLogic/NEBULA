@@ -446,8 +446,6 @@ class DOCUMENT : TAG
         TAG[]
             tag_array;
 
-        writeln( text.strip() );
-
         text = text.replace( "\r", "" ).replace( "\n", " " ).replace( "\t", " " );
 
         while ( text.indexOf( "  " ) >= 0 )
@@ -547,7 +545,8 @@ class POINT_FIELD
         ByteCountArray,
         ByteIndexArray;
     long
-        ChunkIndex;
+        ChunkIndex,
+        BitIndex;
 }
 
 // ~~
@@ -584,8 +583,6 @@ class E57_FILE
     long[]
         VectorChunkByteCountArray;
     long
-        PointByteIndex,
-        PointBitIndex,
         PointBitCount,
         PointIndex;
     POINT_FIELD[]
@@ -838,6 +835,7 @@ class E57_FILE
             point_field_index,
             vector_byte_index,
             vector_chunk_byte_count,
+            vector_chunk_count,
             vector_chunk_index;
 
         vector_byte_index = VectorByteIndex;
@@ -846,19 +844,13 @@ class E57_FILE
         vector_byte_index += 8;
 
         VectorByteCount = ReadNatural( vector_byte_index, 8 );
-        vector_byte_index += 8;
+        vector_byte_index += 24;
 
-        vector_byte_index += 16;
-
-        VectorChunkCount = ReadNatural( vector_byte_index, 2 );
-        vector_byte_index += 2;
-
-        point_field_byte_index = 0;
-
-        for ( vector_chunk_index = 0;
-              vector_chunk_index < VectorChunkCount;
-              ++vector_chunk_index )
+        while ( vector_byte_index < DocumentByteIndex )
         {
+            vector_chunk_count = ReadNatural( vector_byte_index, 2 );
+            vector_byte_index += 2;
+
             vector_chunk_byte_count = ReadNatural( vector_byte_index, 2 ) + 1;
             vector_byte_index += 2;
 
@@ -866,6 +858,8 @@ class E57_FILE
 
             point_field_count = ReadNatural( vector_byte_index, 2 );
             vector_byte_index += 2;
+
+            point_field_byte_index = vector_byte_index + point_field_count * 2;
 
             for ( point_field_index = 0;
                   point_field_index < point_field_count;
@@ -878,14 +872,15 @@ class E57_FILE
                 PointFieldArray[ point_field_index ].ByteCountArray ~= point_field_byte_count;
                 point_field_byte_index += point_field_byte_count;
             }
-        }
 
-        PointByteIndex = vector_byte_index;
+            vector_byte_index = point_field_byte_index;
+        }
     }
 
     // ~~
 
     void ReadDocument(
+        ref string document_text
         )
     {
         long
@@ -906,10 +901,10 @@ class E57_FILE
         DocumentByteIndex = GetByteIndex( ReadNatural( 24, 8 ) );
         DocumentByteCount = ReadNatural( 32, 8 );
 
+        document_text = ReadText( DocumentByteIndex, DocumentByteCount );
+
         Document = new DOCUMENT();
-        Document.SetFromText(
-            ReadText( DocumentByteIndex, DocumentByteCount )
-            );
+        Document.SetFromText( document_text );
 
         if ( Document.FindTag( points_tag, "points" )
              && points_tag.FindTag( prototype_tag, "prototype" )
@@ -1014,12 +1009,20 @@ class E57_FILE
         {
             point_field = PointFieldArray[ point_field_index ];
 
+            if ( point_field.BitIndex >= point_field.ByteCountArray[ point_field.ChunkIndex ] * 8 )
+            {
+                ++point_field.ChunkIndex;
+                point_field.BitIndex = 0;
+            }
+
             scalar.Natural
                 = ReadNatural(
-                    PointByteIndex + point_field.ByteIndexArray[ point_field.ChunkIndex ],
-                    PointIndex * point_field.BitCount,
+                    point_field.ByteIndexArray[ point_field.ChunkIndex ],
+                    point_field.BitIndex,
                     point_field.BitCount
                     );
+
+            point_field.BitIndex += point_field.BitCount;
 
             if ( point_field.IsReal )
             {
@@ -2706,6 +2709,8 @@ long
     XFieldIndex,
     YFieldIndex,
     ZFieldIndex;
+string
+    DocumentText;
 CLOUD
     Cloud;
 GRID
@@ -3014,6 +3019,14 @@ bool HasMesh(
 
 // ~~
 
+bool HasDocument(
+    )
+{
+    return DocumentText != "";
+}
+
+// ~~
+
 void MakeCloudOrGrid(
     float precision
     )
@@ -3256,7 +3269,7 @@ void ReadE57CloudFile(
 
     e57_file = new E57_FILE();
     e57_file.Open( file_path );
-    e57_file.ReadDocument();
+    e57_file.ReadDocument( DocumentText );
 
     while ( e57_file.ReadPoint( point ) )
     {
@@ -3372,6 +3385,24 @@ void DecimateCloud(
     Grid = new GRID( precision );
     Grid.SetFromCloud( Cloud );
     Cloud = null;
+}
+
+// ~~
+
+void WriteXmlDocumentFile(
+    string file_path
+    )
+{
+    writeln( "Writing file : ", file_path );
+
+    try
+    {
+        file_path.write( DocumentText.strip() ~ "\n" );
+    }
+    catch ( Exception exception )
+    {
+        Abort( "Can't write file : " ~ file_path, exception );
+    }
 }
 
 // ~~
@@ -3697,6 +3728,14 @@ void main(
             precision = argument_array[ 0 ].to!float();
             argument_array = argument_array[ 1 .. $ ];
         }
+        else if ( option == "--write-xml-document"
+                  && argument_array.length >= 1
+                  && HasDocument() )
+        {
+            WriteXmlDocumentFile( argument_array[ 0 ] );
+
+            argument_array = argument_array[ 1 .. $ ];
+        }
         else if ( option == "--write-cloud"
                   && argument_array.length >= 4
                   && HasCloud() )
@@ -3765,6 +3804,7 @@ void main(
         writeln( "    --rotate-y <degree angle>" );
         writeln( "    --rotate-z <degree angle>" );
         writeln( "    --decimate <precision>" );
+        writeln( "    --write-xml-document <file path>" );
         writeln( "    --write-cloud <header format> <line format> <footer format>" );
         writeln( "    --write-xyz-cloud <file path>" );
         writeln( "    --write-pts-cloud <file path>" );

@@ -43,6 +43,7 @@ nebula <options>
 --rotate-y <degree angle> : rotate the point cloud around the Y axis
 --rotate-z <degree angle> : rotate the point cloud around the Z axis
 --decimate <precision> : decimate the point cloud
+--write-xml-document <file path> : write an XML document
 --write-cloud <header format> <line format> <footer format>
 --write-xyz-cloud <file path> : write an XYZ point cloud
 --write-pts-cloud <file path> : write a PTS point cloud
