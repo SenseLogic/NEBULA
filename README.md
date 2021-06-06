@@ -69,6 +69,10 @@ I : intensity
 ### Output line format
 
 ```
+\n : line feed character
+\r : carriage return character
+\t : tabulation character
+{{point_count}} : point count
 {{x}} : -X
 {{y}} : -Y
 {{z}} : -Z
