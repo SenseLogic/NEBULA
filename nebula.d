@@ -348,7 +348,8 @@ class TAG
     // -- ATTRIBUTES
 
     string
-        Name;
+        Name,
+        Text;
     PROPERTY[]
         PropertyArray;
     TAG[]
@@ -383,6 +384,23 @@ class TAG
 
     // ~~
 
+    bool HasPropertyValue(
+        string property_name
+        )
+    {
+        foreach ( property; PropertyArray )
+        {
+            if ( property.Name == property_name )
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // ~~
+
     string GetPropertyValue(
         string property_name,
         string default_property_value = ""
@@ -397,6 +415,33 @@ class TAG
         }
 
         return default_property_value;
+    }
+
+    // ~~
+
+    void Dump(
+        long level = 0
+        )
+    {
+        string
+            line;
+
+        line = level.to!string() ~ " : " ~ Name;
+
+        foreach ( property; PropertyArray )
+        {
+            line ~= " " ~ property.Name ~ "=\"" ~ property.Value ~ "\"";
+        }
+
+        writeln( line );
+
+        if ( level >= 0 )
+        {
+            foreach ( sub_tag; SubTagArray )
+            {
+                sub_tag.Dump( level + 1 );
+            }
+        }
     }
 
     // -- OPERATIONS
@@ -461,46 +506,57 @@ class DOCUMENT : TAG
             {
                 post_tag_character_index = tag_character_index;
 
-                while( text[ post_tag_character_index ] != '>' )
+                while ( text[ post_tag_character_index ] != '>' )
                 {
                     ++post_tag_character_index;
                 }
 
                 tag_text = text[ tag_character_index + 1 .. post_tag_character_index ];
 
-                if ( tag_text.startsWith( "/" ) )
+                if ( !tag_text.startsWith( '?' )
+                     && !tag_text.startsWith( '!' ) )
                 {
-                    tag_array = tag_array[ 0 .. $ - 1 ];
-                }
-                else
-                {
-                    tag = new TAG();
-
-                    if ( tag_text.endsWith( "/" ) )
+                    if ( tag_text.startsWith( "/" ) )
                     {
-                        tag.SetFromText( tag_text[ 0 .. $ - 1 ] );
+                        tag_array = tag_array[ 0 .. $ - 1 ];
                     }
                     else
                     {
-                        tag.SetFromText( tag_text );
-                    }
+                        tag = new TAG();
 
-                    if ( tag_array.length == 0 )
-                    {
-                        SubTagArray ~= tag;
-                    }
-                    else
-                    {
-                        tag_array[ $ - 1 ].SubTagArray ~= tag;
-                    }
+                        if ( tag_text.endsWith( "/" ) )
+                        {
+                            tag.SetFromText( tag_text[ 0 .. $ - 1 ] );
+                        }
+                        else
+                        {
+                            tag.SetFromText( tag_text );
+                        }
 
-                    if ( !tag_text.endsWith( "/" ) )
-                    {
-                        tag_array ~= tag;
+                        if ( tag_array.length == 0 )
+                        {
+                            SubTagArray ~= tag;
+                        }
+                        else
+                        {
+                            tag_array[ $ - 1 ].SubTagArray ~= tag;
+                        }
+
+                        if ( !tag_text.endsWith( "/" ) )
+                        {
+                            tag_array ~= tag;
+                        }
                     }
                 }
 
                 tag_character_index = post_tag_character_index;
+            }
+            else
+            {
+                if ( tag_array.length > 0 )
+                {
+                    tag_array[ $ - 1 ].Text ~= text[ tag_character_index ];
+                }
             }
         }
     }
@@ -570,6 +626,8 @@ class E57_FILE
         FirstBuffer;
     long
         BufferCount;
+    string
+        DocumentText;
     DOCUMENT
         Document;
     bool
@@ -612,6 +670,111 @@ class E57_FILE
         )
     {
         return file_byte_index - ( file_byte_index >> 10 ) * 4;
+    }
+
+    // ~~
+
+    void WriteDocument(
+        string document_file_path
+        )
+    {
+        WriteText( document_file_path, DocumentText.strip() ~ "\n" );
+    }
+
+    // ~~
+
+    void WriteImages(
+        string image_folder_path
+        )
+    {
+        double
+            rotation_x,
+            rotation_y,
+            rotation_z,
+            rotation_w,
+            translation_x,
+            translation_y,
+            translation_z;
+        long
+            image_count,
+            image_file_byte_index,
+            image_file_byte_count;
+        string
+            image_file_path;
+        ubyte[]
+            image_byte_array;
+        TAG
+            images_2D_tag,
+            jpeg_image_tag,
+            pinhole_representation_tag,
+            pose_tag,
+            rotation_tag,
+            rotation_x_tag,
+            rotation_y_tag,
+            rotation_z_tag,
+            rotation_w_tag,
+            translation_tag,
+            translation_x_tag,
+            translation_y_tag,
+            translation_z_tag;
+
+        if ( Document.FindTag( images_2D_tag, "images2D" ) )
+        {
+            foreach ( sub_tag; images_2D_tag.SubTagArray )
+            {
+                if ( sub_tag.FindTag( pose_tag, "pose" )
+                     && pose_tag.FindTag( rotation_tag, "rotation" )
+                     && rotation_tag.FindTag( rotation_x_tag, "x" )
+                     && rotation_tag.FindTag( rotation_y_tag, "y" )
+                     && rotation_tag.FindTag( rotation_z_tag, "z" )
+                     && rotation_tag.FindTag( rotation_w_tag, "w" )
+                     && pose_tag.FindTag( translation_tag, "translation" )
+                     && translation_tag.FindTag( translation_x_tag, "x" )
+                     && translation_tag.FindTag( translation_y_tag, "y" )
+                     && translation_tag.FindTag( translation_z_tag, "z" ) )
+                {
+                    writeln(
+                        "Image rotation : ",
+                        rotation_x_tag.Text,
+                        " ",
+                        rotation_y_tag.Text,
+                        " ",
+                        rotation_z_tag.Text,
+                        " ",
+                        rotation_w_tag.Text
+                        );
+
+                    writeln(
+                        "Image translation : ",
+                        translation_x_tag.Text,
+                        " ",
+                        translation_y_tag.Text,
+                        " ",
+                        translation_z_tag.Text,
+                        );
+                }
+
+                if ( sub_tag.FindTag( pinhole_representation_tag, "pinholeRepresentation" )
+                     && pinhole_representation_tag.FindTag( jpeg_image_tag, "jpegImage" )
+                     && jpeg_image_tag.HasPropertyValue( "fileOffset" )
+                     && jpeg_image_tag.HasPropertyValue( "length" ) )
+                {
+                    image_file_byte_index = jpeg_image_tag.GetPropertyValue( "fileOffset" ).to!long() + 16;
+                    image_file_byte_count = jpeg_image_tag.GetPropertyValue( "length" ).to!long();
+
+                    if ( image_count == 0 )
+                    {
+                        image_file_byte_index += 4;
+                    }
+
+                    image_byte_array = ReadByteArray( GetByteIndex( image_file_byte_index ), image_file_byte_count );
+
+                    ++image_count;
+                    image_file_path = image_folder_path ~ "image_" ~ image_count.to!string() ~ ".jpg";
+                    WriteByteArray( image_file_path, image_byte_array );
+                }
+            }
+        }
     }
 
     // -- OPERATIONS
@@ -803,6 +966,28 @@ class E57_FILE
 
     // ~~
 
+    ubyte[] ReadByteArray(
+        long byte_index,
+        long byte_count
+        )
+    {
+        long
+            read_byte_index;
+        ubyte[]
+            byte_array;
+
+        for ( read_byte_index = 0;
+              read_byte_index < byte_count;
+              ++read_byte_index )
+        {
+            byte_array ~= ReadByte( byte_index + read_byte_index );
+        }
+
+        return byte_array;
+    }
+
+    // ~~
+
     string ReadText(
         long byte_index,
         long byte_count
@@ -880,7 +1065,7 @@ class E57_FILE
     // ~~
 
     void ReadDocument(
-        ref string document_text
+        bool points_are_read
         )
     {
         long
@@ -900,13 +1085,12 @@ class E57_FILE
 
         DocumentByteIndex = GetByteIndex( ReadNatural( 24, 8 ) );
         DocumentByteCount = ReadNatural( 32, 8 );
-
-        document_text = ReadText( DocumentByteIndex, DocumentByteCount );
-
+        DocumentText = ReadText( DocumentByteIndex, DocumentByteCount );
         Document = new DOCUMENT();
-        Document.SetFromText( document_text );
+        Document.SetFromText( DocumentText );
 
-        if ( Document.FindTag( points_tag, "points" )
+        if ( points_are_read
+             && Document.FindTag( points_tag, "points" )
              && points_tag.FindTag( prototype_tag, "prototype" )
              && prototype_tag.GetPropertyValue( "type" ) == "Structure" )
         {
@@ -2709,8 +2893,6 @@ long
     XFieldIndex,
     YFieldIndex,
     ZFieldIndex;
-string
-    DocumentText;
 CLOUD
     Cloud;
 GRID
@@ -2876,6 +3058,44 @@ string GetText(
 
 // ~~
 
+void WriteByteArray(
+    string file_path,
+    ubyte[] file_byte_array
+    )
+{
+    writeln( "Writing file : ", file_path );
+
+    try
+    {
+        file_path.write( file_byte_array );
+    }
+    catch ( Exception exception )
+    {
+        Abort( "Can't write file : " ~ file_path, exception );
+    }
+}
+
+// ~~
+
+void WriteText(
+    string file_path,
+    string file_text
+    )
+{
+    writeln( "Writing file : ", file_path );
+
+    try
+    {
+        file_path.write( file_text );
+    }
+    catch ( Exception exception )
+    {
+        Abort( "Can't write file : " ~ file_path, exception );
+    }
+}
+
+// ~~
+
 long GetCellIndex(
     long cell_x_index,
     long cell_y_index,
@@ -3019,19 +3239,11 @@ bool HasMesh(
 
 // ~~
 
-bool HasDocument(
-    )
-{
-    return DocumentText != "";
-}
-
-// ~~
-
 void MakeCloudOrGrid(
     float precision
     )
 {
-    if ( precision == 0.0 )
+    if ( precision <= 0.0 )
     {
         if ( !HasCloud() )
         {
@@ -3258,6 +3470,8 @@ void ReadE57CloudFile(
     float precision
     )
 {
+    bool
+        points_are_read;
     E57_FILE
         e57_file;
     POINT
@@ -3269,13 +3483,54 @@ void ReadE57CloudFile(
 
     e57_file = new E57_FILE();
     e57_file.Open( file_path );
-    e57_file.ReadDocument( DocumentText );
+    e57_file.ReadDocument( true );
 
-    while ( e57_file.ReadPoint( point ) )
+    if ( points_are_read )
     {
-        AddPoint( point.GetTransformedPoint() );
+        while ( e57_file.ReadPoint( point ) )
+        {
+            AddPoint( point.GetTransformedPoint() );
+        }
     }
 
+    e57_file.Close();
+}
+
+// ~~
+
+void ExtractE57CloudFileDocument(
+    string file_path,
+    string document_file_path
+    )
+{
+    E57_FILE
+        e57_file;
+
+    writeln( "Extract document : ", file_path, " ", document_file_path );
+
+    e57_file = new E57_FILE();
+    e57_file.Open( file_path );
+    e57_file.ReadDocument( false );
+    e57_file.WriteDocument( document_file_path );
+    e57_file.Close();
+}
+
+// ~~
+
+void ExtractE57CloudFileImages(
+    string file_path,
+    string image_folder_path
+    )
+{
+    E57_FILE
+        e57_file;
+
+    writeln( "Extract images : ", file_path, " ", image_folder_path );
+
+    e57_file = new E57_FILE();
+    e57_file.Open( file_path );
+    e57_file.ReadDocument( false );
+    e57_file.WriteImages( image_folder_path );
     e57_file.Close();
 }
 
@@ -3389,24 +3644,6 @@ void DecimateCloud(
 
 // ~~
 
-void WriteXmlDocumentFile(
-    string file_path
-    )
-{
-    writeln( "Writing file : ", file_path );
-
-    try
-    {
-        file_path.write( DocumentText.strip() ~ "\n" );
-    }
-    catch ( Exception exception )
-    {
-        Abort( "Can't write file : " ~ file_path, exception );
-    }
-}
-
-// ~~
-
 void WriteCloudFile(
     string file_path,
     string header_format,
@@ -3458,12 +3695,9 @@ void main(
     string[] argument_array
     )
 {
-    float
-        precision;
     string
         option;
 
-    precision = 0.0;
     PositionOffsetVector.SetNull();
     PositionScalingVector.SetUnit();
     PositionRotationVector.SetNull();
@@ -3590,7 +3824,6 @@ void main(
                 argument_array[ 6 ]
                 );
 
-            precision = argument_array[ 1 ].to!float();
             argument_array = argument_array[ 7 .. $ ];
         }
         else if ( option == "--read-xyz-cloud"
@@ -3602,7 +3835,6 @@ void main(
                 argument_array[ 1 ].to!float()
                 );
 
-            precision = argument_array[ 1 ].to!float();
             argument_array = argument_array[ 2 .. $ ];
         }
         else if ( option == "--read-pts-cloud"
@@ -3614,7 +3846,6 @@ void main(
                 argument_array[ 1 ].to!float()
                 );
 
-            precision = argument_array[ 1 ].to!float();
             argument_array = argument_array[ 2 .. $ ];
         }
         else if ( option == "--read-e57-cloud"
@@ -3626,7 +3857,6 @@ void main(
                 argument_array[ 1 ].to!float()
                 );
 
-            precision = argument_array[ 1 ].to!float();
             argument_array = argument_array[ 2 .. $ ];
         }
         else if ( option == "--read-obj-cloud"
@@ -3638,7 +3868,6 @@ void main(
                 argument_array[ 1 ].to!float()
                 );
 
-            precision = argument_array[ 1 ].to!float();
             argument_array = argument_array[ 3 .. $ ];
         }
         else if ( option == "--read-obj-mesh"
@@ -3649,6 +3878,28 @@ void main(
                 );
 
             argument_array = argument_array[ 1 .. $ ];
+        }
+        else if ( option == "--extract-e57-cloud-document"
+                  && argument_array.length >= 2
+                  && argument_array[ 1 ].endsWith( ".xml" ) )
+        {
+            ExtractE57CloudFileDocument(
+                argument_array[ 0 ],
+                argument_array[ 1 ]
+                );
+
+            argument_array = argument_array[ 2 .. $ ];
+        }
+        else if ( option == "--extract-e57-cloud-images"
+                  && argument_array.length >= 1
+                  && argument_array[ 1 ].endsWith( '/' ) )
+        {
+            ExtractE57CloudFileImages(
+                argument_array[ 0 ],
+                argument_array[ 1 ]
+                );
+
+            argument_array = argument_array[ 2 .. $ ];
         }
         else if ( option == "--sample"
                   && argument_array.length >= 1
@@ -3725,15 +3976,6 @@ void main(
         {
             DecimateCloud( argument_array[ 0 ].to!float() );
 
-            precision = argument_array[ 0 ].to!float();
-            argument_array = argument_array[ 1 .. $ ];
-        }
-        else if ( option == "--write-xml-document"
-                  && argument_array.length >= 1
-                  && HasDocument() )
-        {
-            WriteXmlDocumentFile( argument_array[ 0 ] );
-
             argument_array = argument_array[ 1 .. $ ];
         }
         else if ( option == "--write-cloud"
@@ -3797,6 +4039,8 @@ void main(
         writeln( "    --read-e57-cloud <file path> <precision>" );
         writeln( "    --read-obj-cloud <file path> <precision>" );
         writeln( "    --read-obj-mesh <file path>" );
+        writeln( "    --extract-e57-cloud-document <file path> <xml file path>" );
+        writeln( "    --extract-e57-cloud-images <file path> <jpeg folder path>/" );
         writeln( "    --sample <precision>" );
         writeln( "    --translate <x> <y> <z>" );
         writeln( "    --scale <x> <y> <z>" );
@@ -3804,7 +4048,6 @@ void main(
         writeln( "    --rotate-y <degree angle>" );
         writeln( "    --rotate-z <degree angle>" );
         writeln( "    --decimate <precision>" );
-        writeln( "    --write-xml-document <file path>" );
         writeln( "    --write-cloud <header format> <line format> <footer format>" );
         writeln( "    --write-xyz-cloud <file path>" );
         writeln( "    --write-pts-cloud <file path>" );

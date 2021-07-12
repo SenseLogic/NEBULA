@@ -36,6 +36,8 @@ nebula <options>
 --read-e57-cloud <file path> <precision> : read an E57 point cloud
 --read-obj-cloud <file path> <precision> : read an OBJ point cloud
 --read-obj-mesh <file path> : read an OBJ mesh
+--extract-e57-cloud-document <file path> <xml file path> : extract the E57 point cloud document
+--extract-e57-cloud-images <file path> <jpeg folder path>/ : extract the E57 point cloud images
 --sample <precision> : sample mesh
 --translate <x> <y> <z> : translate the point cloud
 --scale <x> <y> <z> : translate the point cloud
@@ -43,7 +45,6 @@ nebula <options>
 --rotate-y <degree angle> : rotate the point cloud around the Y axis
 --rotate-z <degree angle> : rotate the point cloud around the Z axis
 --decimate <precision> : decimate the point cloud
---write-xml-document <file path> : write an XML document
 --write-cloud <header format> <line format> <footer format>
 --write-xyz-cloud <file path> : write an XYZ point cloud
 --write-pts-cloud <file path> : write a PTS point cloud
