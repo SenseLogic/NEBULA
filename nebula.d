@@ -688,10 +688,10 @@ class E57_FILE
         )
     {
         double
+            rotation_w,
             rotation_x,
             rotation_y,
             rotation_z,
-            rotation_w,
             translation_x,
             translation_y,
             translation_z;
@@ -722,36 +722,34 @@ class E57_FILE
         {
             foreach ( sub_tag; images_2D_tag.SubTagArray )
             {
+                translation_x = 0.0;
+                translation_y = 0.0;
+                translation_z = 0.0;
+                
+                rotation_w = 0.0;
+                rotation_x = 0.0;
+                rotation_y = 0.0;
+                rotation_z = 0.0;
+                
                 if ( sub_tag.FindTag( pose_tag, "pose" )
-                     && pose_tag.FindTag( rotation_tag, "rotation" )
-                     && rotation_tag.FindTag( rotation_x_tag, "x" )
-                     && rotation_tag.FindTag( rotation_y_tag, "y" )
-                     && rotation_tag.FindTag( rotation_z_tag, "z" )
-                     && rotation_tag.FindTag( rotation_w_tag, "w" )
                      && pose_tag.FindTag( translation_tag, "translation" )
                      && translation_tag.FindTag( translation_x_tag, "x" )
                      && translation_tag.FindTag( translation_y_tag, "y" )
-                     && translation_tag.FindTag( translation_z_tag, "z" ) )
-                {
-                    writeln(
-                        "Image rotation : ",
-                        rotation_x_tag.Text,
-                        " ",
-                        rotation_y_tag.Text,
-                        " ",
-                        rotation_z_tag.Text,
-                        " ",
-                        rotation_w_tag.Text
-                        );
-
-                    writeln(
-                        "Image translation : ",
-                        translation_x_tag.Text,
-                        " ",
-                        translation_y_tag.Text,
-                        " ",
-                        translation_z_tag.Text,
-                        );
+                     && translation_tag.FindTag( translation_z_tag, "z" )
+                     && pose_tag.FindTag( rotation_tag, "rotation" )
+                     && rotation_tag.FindTag( rotation_w_tag, "w" )
+                     && rotation_tag.FindTag( rotation_x_tag, "x" )
+                     && rotation_tag.FindTag( rotation_y_tag, "y" )
+                     && rotation_tag.FindTag( rotation_z_tag, "z" ) )
+                {                
+                    translation_x = translation_x_tag.Text.GetReal64();
+                    translation_y = translation_y_tag.Text.GetReal64();
+                    translation_z = translation_z_tag.Text.GetReal64();
+                    
+                    rotation_w = rotation_w_tag.Text.GetReal64();
+                    rotation_x = rotation_x_tag.Text.GetReal64();
+                    rotation_y = rotation_y_tag.Text.GetReal64();
+                    rotation_z = rotation_z_tag.Text.GetReal64();
                 }
 
                 if ( sub_tag.FindTag( pinhole_representation_tag, "pinholeRepresentation" )
@@ -768,9 +766,29 @@ class E57_FILE
                     }
 
                     image_byte_array = ReadByteArray( GetByteIndex( image_file_byte_index ), image_file_byte_count );
-
+                    
                     ++image_count;
-                    image_file_path = image_folder_path ~ "image_" ~ image_count.to!string() ~ ".jpg";
+                    
+                    image_file_path 
+                        = image_folder_path 
+                          ~ "image_" 
+                          ~ image_count.to!string() 
+                          ~ "_translation_" 
+                          ~ translation_x.GetText()
+                          ~ "_" 
+                          ~ translation_y.GetText()
+                          ~ "_" 
+                          ~ translation_z.GetText()
+                          ~ "_rotation_" 
+                          ~ rotation_w.GetText()
+                          ~ "_" 
+                          ~ rotation_x.GetText()
+                          ~ "_" 
+                          ~ rotation_y.GetText()
+                          ~ "_" 
+                          ~ rotation_z.GetText()
+                          ~ ".jpg";
+                      
                     WriteByteArray( image_file_path, image_byte_array );
                 }
             }
@@ -3015,6 +3033,22 @@ bool IsReal(
 
 // ~~
 
+double GetReal64(
+    string text
+    )
+{
+    if ( text == "" )
+    {
+        return 0.0;
+    }
+    else
+    {
+        return text.to!double();
+    }
+}
+
+// ~~
+
 string GetText(
     long integer
     )
@@ -3026,6 +3060,40 @@ string GetText(
 
 string GetText(
     float real_
+    )
+{
+    string
+        text;
+
+    text = format( "%f", real_ );
+
+    if ( text.indexOf( '.' ) >= 0 )
+    {
+        while ( text.endsWith( '0') )
+        {
+            text = text[ 0 .. $ - 1 ];
+        }
+
+        if ( text.endsWith( '.' ) )
+        {
+            text = text[ 0 .. $ - 1 ];
+        }
+    }
+
+    if ( text == "-0" )
+    {
+        return "0";
+    }
+    else
+    {
+        return text;
+    }
+}
+
+// ~~
+
+string GetText(
+    double real_
     )
 {
     string
@@ -3697,7 +3765,7 @@ void main(
 {
     string
         option;
-
+        
     PositionOffsetVector.SetNull();
     PositionScalingVector.SetUnit();
     PositionRotationVector.SetNull();
