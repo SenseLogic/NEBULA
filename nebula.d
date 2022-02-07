@@ -725,12 +725,12 @@ class E57_FILE
                 translation_x = 0.0;
                 translation_y = 0.0;
                 translation_z = 0.0;
-                
+
                 rotation_w = 0.0;
                 rotation_x = 0.0;
                 rotation_y = 0.0;
                 rotation_z = 0.0;
-                
+
                 if ( sub_tag.FindTag( pose_tag, "pose" )
                      && pose_tag.FindTag( translation_tag, "translation" )
                      && translation_tag.FindTag( translation_x_tag, "x" )
@@ -741,11 +741,11 @@ class E57_FILE
                      && rotation_tag.FindTag( rotation_x_tag, "x" )
                      && rotation_tag.FindTag( rotation_y_tag, "y" )
                      && rotation_tag.FindTag( rotation_z_tag, "z" ) )
-                {                
+                {
                     translation_x = translation_x_tag.Text.GetReal64();
                     translation_y = translation_y_tag.Text.GetReal64();
                     translation_z = translation_z_tag.Text.GetReal64();
-                    
+
                     rotation_w = rotation_w_tag.Text.GetReal64();
                     rotation_x = rotation_x_tag.Text.GetReal64();
                     rotation_y = rotation_y_tag.Text.GetReal64();
@@ -766,29 +766,29 @@ class E57_FILE
                     }
 
                     image_byte_array = ReadByteArray( GetByteIndex( image_file_byte_index ), image_file_byte_count );
-                    
+
                     ++image_count;
-                    
-                    image_file_path 
-                        = image_folder_path 
-                          ~ "image_" 
-                          ~ image_count.to!string() 
-                          ~ "_translation_" 
+
+                    image_file_path
+                        = image_folder_path
+                          ~ "image_"
+                          ~ image_count.to!string()
+                          ~ "_translation_"
                           ~ translation_x.GetText()
-                          ~ "_" 
+                          ~ "_"
                           ~ translation_y.GetText()
-                          ~ "_" 
+                          ~ "_"
                           ~ translation_z.GetText()
-                          ~ "_rotation_" 
+                          ~ "_rotation_"
                           ~ rotation_w.GetText()
-                          ~ "_" 
+                          ~ "_"
                           ~ rotation_x.GetText()
-                          ~ "_" 
+                          ~ "_"
                           ~ rotation_y.GetText()
-                          ~ "_" 
+                          ~ "_"
                           ~ rotation_z.GetText()
                           ~ ".jpg";
-                      
+
                     WriteByteArray( image_file_path, image_byte_array );
                 }
             }
@@ -3765,7 +3765,7 @@ void main(
 {
     string
         option;
-        
+
     PositionOffsetVector.SetNull();
     PositionScalingVector.SetUnit();
     PositionRotationVector.SetNull();
@@ -4092,7 +4092,7 @@ void main(
     if ( argument_array.length != 0 )
     {
         writeln( "Usage :" );
-        writeln( "    nebula <options>" );
+        writeln( "    nebula [options]" );
         writeln( "Options :" );
         writeln( "    --position-offset <x> <y> <z>" );
         writeln( "    --position-scaling <x> <y> <z>" );

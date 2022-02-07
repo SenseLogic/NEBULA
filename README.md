@@ -17,7 +17,7 @@ dmd -m64 nebula.d
 ## Command line
 
 ```bash
-nebula <options>
+nebula [options]
 ```
 
 ### Options
