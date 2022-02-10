@@ -27,6 +27,11 @@ import std.file : write;
 import std.math : cos, round, sin, sqrt, PI;
 import std.stdio : readln, writeln, File;
 import std.string : endsWith, format, indexOf, replace, split, startsWith, strip;
+import pcf.cell;
+import pcf.cloud;
+import pcf.component;
+import pcf.compression;
+import pcf.scan;
 
 // -- CONSTANTS
 
@@ -2012,6 +2017,50 @@ class CLOUD
         }
     }
 
+    // ~~
+
+    void WritePcfCloudFile(
+        string file_path
+        )
+    {
+        pcf.cloud.CELL
+            cell;
+        pcf.cloud.CLOUD
+            cloud;
+        pcf.scan.SCAN
+            scan;
+
+        cloud = new pcf.cloud.CLOUD();
+
+        scan = new pcf.scan.SCAN();
+        scan.PointCount = PointArray.length;
+        scan.ColumnCount = scan.PointCount;
+        scan.RowCount = 1;
+        scan.ComponentArray ~= new pcf.component.COMPONENT( "X", pcf.compression.COMPRESSION.Discretization, 8, 0.001, 0.0, 0.0 );
+        scan.ComponentArray ~= new pcf.component.COMPONENT( "Y", pcf.compression.COMPRESSION.Discretization, 8, 0.001, 0.0, 0.0 );
+        scan.ComponentArray ~= new pcf.component.COMPONENT( "Z", pcf.compression.COMPRESSION.Discretization, 8, 0.001, 0.0, 0.0 );
+        scan.ComponentArray ~= new pcf.component.COMPONENT( "I", pcf.compression.COMPRESSION.Discretization, 8, 1.0 / 255.0, 0.0, 1.0 );
+        scan.ComponentArray ~= new pcf.component.COMPONENT( "R", pcf.compression.COMPRESSION.Discretization, 8, 1.0, 0.0, 255.0 );
+        scan.ComponentArray ~= new pcf.component.COMPONENT( "G", pcf.compression.COMPRESSION.Discretization, 8, 1.0, 0.0, 255.0 );
+        scan.ComponentArray ~= new pcf.component.COMPONENT( "B", pcf.compression.COMPRESSION.Discretization, 8, 1.0, 0.0, 255.0 );
+
+        foreach ( ref point; PointArray )
+        {
+            cell = scan.GetCell( point.PositionVector.X, point.PositionVector.Y, point.PositionVector.Z );
+            cell.AddComponentValue( scan.ComponentArray, 0, point.PositionVector.X );
+            cell.AddComponentValue( scan.ComponentArray, 1, point.PositionVector.Y );
+            cell.AddComponentValue( scan.ComponentArray, 2, point.PositionVector.Z );
+            cell.AddComponentValue( scan.ComponentArray, 3, point.ColorVector.W );
+            cell.AddComponentValue( scan.ComponentArray, 4, point.ColorVector.X );
+            cell.AddComponentValue( scan.ComponentArray, 5, point.ColorVector.Y );
+            cell.AddComponentValue( scan.ComponentArray, 6, point.ColorVector.Z );
+            ++cell.PointCount;
+
+            cloud.ScanArray ~= scan;
+        }
+
+        cloud.WritePcfFile( file_path );
+    }
 
     // -- OPERATIONS
 
@@ -3518,6 +3567,11 @@ void ReadXyzCloudFile(
     float precision
     )
 {
+    POINT
+        point;
+
+    writeln( "Reading file : ", file_path, " ", precision );
+
     ReadCloudFile( file_path, precision, 0, 3, 3, "", "XYZ" );
 }
 
@@ -3529,6 +3583,95 @@ void ReadPtsCloudFile(
     )
 {
     ReadCloudFile( file_path, precision, 0, 3, 7, "", "XYZIRGB" );
+}
+
+// ~~
+
+void ReadPcfCloudFile(
+    string file_path,
+    float precision
+    )
+{
+    ulong
+        b_component_index,
+        g_component_index,
+        i_component_index,
+        r_component_index,
+        x_component_index,
+        y_component_index,
+        z_component_index;
+    pcf.cloud.CLOUD
+        cloud;
+    POINT
+        point;
+
+    writeln( "Reading file : ", file_path, " ", precision );
+
+    MakeCloudOrGrid( precision );
+
+    cloud = new pcf.cloud.CLOUD();
+    cloud.ReadPcfFile( file_path );
+
+    foreach ( scan; cloud.ScanArray )
+    {
+        x_component_index = scan.GetComponentIndex( "X" );
+        y_component_index = scan.GetComponentIndex( "Y" );
+        z_component_index = scan.GetComponentIndex( "Z" );
+        r_component_index = scan.GetComponentIndex( "R" );
+        g_component_index = scan.GetComponentIndex( "G" );
+        b_component_index = scan.GetComponentIndex( "B" );
+        i_component_index = scan.GetComponentIndex( "I" );
+
+        foreach ( cell; scan.CellMap.byValue )
+        {
+            foreach ( point_index; 0 .. cell.PointCount )
+            {
+                point.SetNull();
+
+                if ( x_component_index >= 0 )
+                {
+                    point.PositionVector.X = cell.GetComponentValue( point_index, scan.ComponentArray, x_component_index );
+                }
+
+                if ( y_component_index >= 0 )
+                {
+                    point.PositionVector.Y = cell.GetComponentValue( point_index, scan.ComponentArray, y_component_index );
+                }
+
+                if ( z_component_index >= 0 )
+                {
+                    point.PositionVector.Z = cell.GetComponentValue( point_index, scan.ComponentArray, z_component_index );
+                }
+
+                if ( r_component_index >= 0 )
+                {
+                    point.ColorVector.X = cell.GetComponentValue( point_index, scan.ComponentArray, r_component_index );
+                }
+
+                if ( g_component_index >= 0 )
+                {
+                    point.ColorVector.Y = cell.GetComponentValue( point_index, scan.ComponentArray, g_component_index );
+                }
+
+                if ( b_component_index >= 0 )
+                {
+                    point.ColorVector.Z = cell.GetComponentValue( point_index, scan.ComponentArray, b_component_index );
+                }
+
+                if ( i_component_index >= 0 )
+                {
+                    point.ColorVector.W = cell.GetComponentValue( point_index, scan.ComponentArray, i_component_index );
+                }
+
+                AddPoint( point );
+            }
+        }
+    }
+
+    if ( Grid !is null )
+    {
+        Grid.SetAveragePoint();
+    }
 }
 
 // ~~
@@ -3748,6 +3891,17 @@ void WritePtsCloudFile(
 
 // ~~
 
+void WritePcfCloudFile(
+    string file_path
+    )
+{
+    writeln( "Writing file : ", file_path );
+
+    Cloud.WritePcfCloudFile( file_path );
+}
+
+// ~~
+
 void WriteObjMeshFile(
     string file_path
     )
@@ -3916,6 +4070,17 @@ void main(
 
             argument_array = argument_array[ 2 .. $ ];
         }
+        else if ( option == "--read-pcf-cloud"
+                  && argument_array.length >= 3
+                  && IsReal( argument_array[ 1 ] ) )
+        {
+            ReadPcfCloudFile(
+                argument_array[ 0 ],
+                argument_array[ 1 ].to!float()
+                );
+
+            argument_array = argument_array[ 2 .. $ ];
+        }
         else if ( option == "--read-e57-cloud"
                   && argument_array.length >= 2
                   && IsReal( argument_array[ 1 ] ) )
@@ -4075,6 +4240,14 @@ void main(
 
             argument_array = argument_array[ 1 .. $ ];
         }
+        else if ( option == "--write-pcf-cloud"
+                  && argument_array.length >= 1
+                  && HasCloud() )
+        {
+            WritePcfCloudFile( argument_array[ 0 ] );
+
+            argument_array = argument_array[ 1 .. $ ];
+        }
         else if ( option == "--write-obj-mesh"
                   && argument_array.length >= 1
                   && HasMesh() )
@@ -4105,6 +4278,7 @@ void main(
         writeln( "    --read-xyz-cloud <file path> <precision>" );
         writeln( "    --read-pts-cloud <file path> <precision>" );
         writeln( "    --read-e57-cloud <file path> <precision>" );
+        writeln( "    --read-pcf-cloud <file path> <precision>" );
         writeln( "    --read-obj-cloud <file path> <precision>" );
         writeln( "    --read-obj-mesh <file path>" );
         writeln( "    --extract-e57-cloud-document <file path> <xml file path>" );

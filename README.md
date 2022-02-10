@@ -33,6 +33,7 @@ nebula [options]
 --read-cloud <file path> <precision> <skipped line count> <minimum field count> <maximum field count> <line prefix> <line format> : read a point cloud
 --read-xyz-cloud <file path> <precision> : read an XYZ point cloud
 --read-pts-cloud <file path> <precision> : read a PTS point cloud
+--read-pcf-cloud <file path> <precision> : read a PCF point cloud
 --read-e57-cloud <file path> <precision> : read an E57 point cloud
 --read-obj-cloud <file path> <precision> : read an OBJ point cloud
 --read-obj-mesh <file path> : read an OBJ mesh
@@ -48,6 +49,7 @@ nebula [options]
 --write-cloud <header format> <line format> <footer format>
 --write-xyz-cloud <file path> : write an XYZ point cloud
 --write-pts-cloud <file path> : write a PTS point cloud
+--write-pcf-cloud <file path> : write a PCF point cloud
 --write-obj-mesh <file path> : write an OBJ mesh
 ```
 
