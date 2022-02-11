@@ -36,8 +36,6 @@ nebula [options]
 --read-pcf-cloud <file path> <precision> : read a PCF point cloud
 --read-obj-cloud <file path> <precision> : read an OBJ point cloud
 --read-obj-mesh <file path> : read an OBJ mesh
---get-e57-cloud-document <file path> <xml file path> : extract the E57 point cloud document
---get-e57-cloud-images <file path> <jpeg folder path>/ : extract the E57 point cloud images
 --sample <precision> : sample mesh
 --translate <x> <y> <z> : translate the point cloud
 --scale <x> <y> <z> : translate the point cloud
@@ -50,6 +48,8 @@ nebula [options]
 --write-pts-cloud <file path> : write a PTS point cloud
 --write-pcf-cloud <file path> : write a PCF point cloud
 --write-obj-mesh <file path> : write an OBJ mesh
+--get-e57-cloud-document <file path> <xml file path> : extract the E57 point cloud document
+--get-e57-cloud-images <file path> <jpeg folder path>/ : extract the E57 point cloud images
 ```
 
 ### Input line format
