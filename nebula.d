@@ -3956,7 +3956,7 @@ void main(
 
             argument_array = argument_array[ 1 .. $ ];
         }
-        else if ( option == "--extract-e57-cloud-document"
+        else if ( option == "--get-e57-cloud-document"
                   && argument_array.length >= 2
                   && argument_array[ 1 ].endsWith( ".xml" ) )
         {
@@ -3967,7 +3967,7 @@ void main(
 
             argument_array = argument_array[ 2 .. $ ];
         }
-        else if ( option == "--extract-e57-cloud-images"
+        else if ( option == "--get-e57-cloud-images"
                   && argument_array.length >= 1
                   && argument_array[ 1 ].endsWith( '/' ) )
         {
@@ -4125,8 +4125,8 @@ void main(
         writeln( "    --read-pcf-cloud <file path> <precision>" );
         writeln( "    --read-obj-cloud <file path> <precision>" );
         writeln( "    --read-obj-mesh <file path>" );
-        writeln( "    --extract-e57-cloud-document <file path> <xml file path>" );
-        writeln( "    --extract-e57-cloud-images <file path> <jpeg folder path>/" );
+        writeln( "    --get-e57-cloud-document <file path> <xml file path>" );
+        writeln( "    --get-e57-cloud-images <file path> <jpeg folder path>/" );
         writeln( "    --sample <precision>" );
         writeln( "    --translate <x> <y> <z>" );
         writeln( "    --scale <x> <y> <z>" );
