@@ -3956,28 +3956,6 @@ void main(
 
             argument_array = argument_array[ 1 .. $ ];
         }
-        else if ( option == "--get-e57-cloud-document"
-                  && argument_array.length >= 2
-                  && argument_array[ 1 ].endsWith( ".xml" ) )
-        {
-            ExtractE57CloudFileDocument(
-                argument_array[ 0 ],
-                argument_array[ 1 ]
-                );
-
-            argument_array = argument_array[ 2 .. $ ];
-        }
-        else if ( option == "--get-e57-cloud-images"
-                  && argument_array.length >= 1
-                  && argument_array[ 1 ].endsWith( '/' ) )
-        {
-            ExtractE57CloudFileImages(
-                argument_array[ 0 ],
-                argument_array[ 1 ]
-                );
-
-            argument_array = argument_array[ 2 .. $ ];
-        }
         else if ( option == "--sample"
                   && argument_array.length >= 1
                   && IsReal( argument_array[ 0 ] )
@@ -4099,6 +4077,28 @@ void main(
             WriteObjMeshFile( argument_array[ 0 ] );
 
             argument_array = argument_array[ 1 .. $ ];
+        }
+        else if ( option == "--get-e57-cloud-document"
+                  && argument_array.length >= 2
+                  && argument_array[ 1 ].endsWith( ".xml" ) )
+        {
+            ExtractE57CloudFileDocument(
+                argument_array[ 0 ],
+                argument_array[ 1 ]
+                );
+
+            argument_array = argument_array[ 2 .. $ ];
+        }
+        else if ( option == "--get-e57-cloud-images"
+                  && argument_array.length >= 1
+                  && argument_array[ 1 ].endsWith( '/' ) )
+        {
+            ExtractE57CloudFileImages(
+                argument_array[ 0 ],
+                argument_array[ 1 ]
+                );
+
+            argument_array = argument_array[ 2 .. $ ];
         }
         else
         {
