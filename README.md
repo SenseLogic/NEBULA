@@ -34,7 +34,6 @@ nebula [options]
 --read-xyz-cloud <file path> <precision> : read an XYZ point cloud
 --read-pts-cloud <file path> <precision> : read a PTS point cloud
 --read-pcf-cloud <file path> <precision> : read a PCF point cloud
---read-e57-cloud <file path> <precision> : read an E57 point cloud
 --read-obj-cloud <file path> <precision> : read an OBJ point cloud
 --read-obj-mesh <file path> : read an OBJ mesh
 --extract-e57-cloud-document <file path> <xml file path> : extract the E57 point cloud document
@@ -108,13 +107,9 @@ nebula --read-obj-mesh mesh.obj --sample 0.1 --write-xyz-cloud sampled_cloud.xyz
 ![](https://github.com/senselogic/NEBULA/blob/master/SCREENSHOT/teapot.png)
 ![](https://github.com/senselogic/NEBULA/blob/master/SCREENSHOT/sampled_teapot.png)
 
-## Limitations
-
-*   Incomplete support of the E57 file format.
-
 ## Version
 
-1.0
+0.3
 
 ## Author
 
