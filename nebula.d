@@ -4121,12 +4121,9 @@ void main(
         writeln( "    --read-cloud <file path> <precision> <skipped line count> <minimum field count> <maximum field count> <line prefix> <line format>" );
         writeln( "    --read-xyz-cloud <file path> <precision>" );
         writeln( "    --read-pts-cloud <file path> <precision>" );
-        writeln( "    --read-e57-cloud <file path> <precision>" );
         writeln( "    --read-pcf-cloud <file path> <precision>" );
         writeln( "    --read-obj-cloud <file path> <precision>" );
         writeln( "    --read-obj-mesh <file path>" );
-        writeln( "    --get-e57-cloud-document <file path> <xml file path>" );
-        writeln( "    --get-e57-cloud-images <file path> <jpeg folder path>/" );
         writeln( "    --sample <precision>" );
         writeln( "    --translate <x> <y> <z>" );
         writeln( "    --scale <x> <y> <z>" );
@@ -4138,6 +4135,8 @@ void main(
         writeln( "    --write-xyz-cloud <file path>" );
         writeln( "    --write-pts-cloud <file path>" );
         writeln( "    --write-obj-mesh <file path>" );
+        writeln( "    --get-e57-cloud-document <file path> <xml file path>" );
+        writeln( "    --get-e57-cloud-images <file path> <jpeg folder path>/" );
         writeln( "Examples :" );
         writeln( "    nebula --read-cloud cloud.xyz 0 0 3 3 \"\" xZY --write-xyz-cloud flipped_cloud.xyz" );
         writeln( "    nebula --read-cloud cloud.pts 0 1 7 7 \"\" xZYIRGB --write-pts-cloud flipped_cloud.pts" );

@@ -49,7 +49,7 @@ nebula [options]
 --write-pcf-cloud <file path> : write a PCF point cloud
 --write-obj-mesh <file path> : write an OBJ mesh
 --get-e57-cloud-document <file path> <xml file path> : extract the E57 point cloud document
---get-e57-cloud-images <file path> <jpeg folder path>/ : extract the E57 point cloud images
+--get-e57-cloud-images <file path> <jpeg folder path/> : extract the E57 point cloud images
 ```
 
 ### Input line format
