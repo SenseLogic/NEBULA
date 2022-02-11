@@ -27,11 +27,13 @@ import std.file : write;
 import std.math : cos, round, sin, sqrt, PI;
 import std.stdio : readln, writeln, File;
 import std.string : endsWith, format, indexOf, replace, split, startsWith, strip;
+import pcf.base : Abort, GetReal64, GetText, IsInteger, IsReal;
 import pcf.cell;
 import pcf.cloud;
 import pcf.component;
 import pcf.compression;
 import pcf.scan;
+import pcf.vector_3;
 
 // -- CONSTANTS
 
@@ -1360,6 +1362,19 @@ struct VECTOR_3
 
     // ~~
 
+    void SetVector(
+        float x,
+        float y,
+        float z
+        )
+    {
+        X = x;
+        Y = y;
+        Z = z;
+    }
+
+    // ~~
+
     void AddVector(
         ref VECTOR_3 vector
         )
@@ -1538,6 +1553,22 @@ struct VECTOR_3
         X = ( GetCellXIndex( cell_index ).to!float() + cell_offset ) * precision;
         Y = ( GetCellYIndex( cell_index ).to!float() + cell_offset ) * precision;
         Z = ( GetCellZIndex( cell_index ).to!float() + cell_offset ) * precision;
+    }
+
+    // ~~
+
+    void ApplyTranslationRotationTransform(
+        ref pcf.vector_3.VECTOR_3 translation_vector,
+        ref pcf.vector_3.VECTOR_3 rotated_x_axis_vector,
+        ref pcf.vector_3.VECTOR_3 rotated_y_axis_vector,
+        ref pcf.vector_3.VECTOR_3 rotated_z_axis_vector
+        )
+    {
+        SetVector(
+            translation_vector.X + X * rotated_x_axis_vector.X + Y * rotated_y_axis_vector.X + Z * rotated_z_axis_vector.X,
+            translation_vector.Y + X * rotated_x_axis_vector.Y + Y * rotated_y_axis_vector.Y + Z * rotated_z_axis_vector.Y,
+            translation_vector.Z + X * rotated_x_axis_vector.Z + Y * rotated_y_axis_vector.Z + Z * rotated_z_axis_vector.Z
+            );
     }
 }
 
@@ -1963,6 +1994,12 @@ class CLOUD
                     point.PositionVector.Y.GetText(),
                     " ",
                     point.PositionVector.Z.GetText(),
+                    " ",
+                    point.ColorVector.X.GetText(),
+                    " ",
+                    point.ColorVector.Y.GetText(),
+                    " ",
+                    point.ColorVector.Z.GetText(),
                     "\n"
                     );
             }
@@ -2978,203 +3015,6 @@ VECTOR_4
 
 // -- FUNCTIONS
 
-void PrintError(
-    string message
-    )
-{
-    writeln( "*** ERROR : ", message );
-}
-
-// ~~
-
-void Abort(
-    string message
-    )
-{
-    PrintError( message );
-
-    exit( -1 );
-}
-
-// ~~
-
-void Abort(
-    string message,
-    Exception exception
-    )
-{
-    PrintError( message );
-    PrintError( exception.msg );
-
-    exit( -1 );
-}
-
-// ~~
-
-bool IsInteger(
-    string text
-    )
-{
-    long
-        character_index;
-
-    character_index = 0;
-
-    if ( character_index < text.length
-         && text[ character_index ] == '-' )
-    {
-        ++character_index;
-    }
-
-    while ( character_index < text.length
-            && text[ character_index ] >= '0'
-            && text[ character_index ] <= '9' )
-    {
-        ++character_index;
-    }
-
-    return
-        character_index > 0
-        && character_index == text.length;
-}
-
-// ~~
-
-bool IsReal(
-    string text
-    )
-{
-    long
-        character_index;
-
-    character_index = 0;
-
-    if ( character_index < text.length
-         && text[ character_index ] == '-' )
-    {
-        ++character_index;
-    }
-
-    while ( character_index < text.length
-            && text[ character_index ] >= '0'
-            && text[ character_index ] <= '9' )
-    {
-        ++character_index;
-    }
-
-    if ( character_index < text.length
-         && text[ character_index ] == '.' )
-    {
-        ++character_index;
-    }
-
-    while ( character_index < text.length
-            && text[ character_index ] >= '0'
-            && text[ character_index ] <= '9' )
-    {
-        ++character_index;
-    }
-
-    return
-        character_index > 0
-        && character_index == text.length;
-}
-
-// ~~
-
-double GetReal64(
-    string text
-    )
-{
-    if ( text == "" )
-    {
-        return 0.0;
-    }
-    else
-    {
-        return text.to!double();
-    }
-}
-
-// ~~
-
-string GetText(
-    long integer
-    )
-{
-    return integer.to!string();
-}
-
-// ~~
-
-string GetText(
-    float real_
-    )
-{
-    string
-        text;
-
-    text = format( "%f", real_ );
-
-    if ( text.indexOf( '.' ) >= 0 )
-    {
-        while ( text.endsWith( '0') )
-        {
-            text = text[ 0 .. $ - 1 ];
-        }
-
-        if ( text.endsWith( '.' ) )
-        {
-            text = text[ 0 .. $ - 1 ];
-        }
-    }
-
-    if ( text == "-0" )
-    {
-        return "0";
-    }
-    else
-    {
-        return text;
-    }
-}
-
-// ~~
-
-string GetText(
-    double real_
-    )
-{
-    string
-        text;
-
-    text = format( "%f", real_ );
-
-    if ( text.indexOf( '.' ) >= 0 )
-    {
-        while ( text.endsWith( '0') )
-        {
-            text = text[ 0 .. $ - 1 ];
-        }
-
-        if ( text.endsWith( '.' ) )
-        {
-            text = text[ 0 .. $ - 1 ];
-        }
-    }
-
-    if ( text == "-0" )
-    {
-        return "0";
-    }
-    else
-    {
-        return text;
-    }
-}
-
-// ~~
-
 void WriteByteArray(
     string file_path,
     ubyte[] file_byte_array
@@ -3592,7 +3432,7 @@ void ReadPcfCloudFile(
     float precision
     )
 {
-    ulong
+    long
         b_component_index,
         g_component_index,
         i_component_index,
@@ -3663,8 +3503,17 @@ void ReadPcfCloudFile(
                     point.ColorVector.W = cell.GetComponentValue( point_index, scan.ComponentArray, i_component_index );
                 }
 
+                point.PositionVector.ApplyTranslationRotationTransform(
+                    scan.PositionVector,
+                    scan.XAxisVector,
+                    scan.YAxisVector,
+                    scan.ZAxisVector
+                    );
+
                 AddPoint( point );
             }
+
+            cell.Clear();
         }
     }
 
@@ -3681,14 +3530,12 @@ void ReadE57CloudFile(
     float precision
     )
 {
-    bool
-        points_are_read;
     E57_FILE
         e57_file;
     POINT
         point;
 
-    writeln( "Reading file : ", file_path, " ", precision );
+    writeln( "Reading file    : ", file_path, " ", precision );
 
     MakeCloudOrGrid( precision );
 
@@ -3696,12 +3543,9 @@ void ReadE57CloudFile(
     e57_file.Open( file_path );
     e57_file.ReadDocument( true );
 
-    if ( points_are_read )
+    while ( e57_file.ReadPoint( point ) )
     {
-        while ( e57_file.ReadPoint( point ) )
-        {
-            AddPoint( point.GetTransformedPoint() );
-        }
+        AddPoint( point.GetTransformedPoint() );
     }
 
     e57_file.Close();

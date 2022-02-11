@@ -1,4 +1,4 @@
 #!/bin/sh
 set -x
-dmd -m64 nebula.d PCF/*.d
+dmd -O -inline -m64 -ofnebula nebula.d PCF/*.d
 rm *.o

@@ -1,3 +1,6 @@
 /PCF/
-nebula
-*.o
+/nebula
+/*.o
+/*.obj
+/*.ilk
+/*.pdb
