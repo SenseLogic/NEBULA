@@ -27,13 +27,13 @@ import std.file : write;
 import std.math : cos, round, sin, sqrt, PI;
 import std.stdio : readln, writeln, File;
 import std.string : endsWith, format, indexOf, replace, split, startsWith, strip;
-import pcf.base : Abort, GetReal64, GetText, IsInteger, IsReal;
+import base.base : Abort, GetReal64, GetText, IsInteger, IsReal;
+import base.vector_3;
 import pcf.cell;
 import pcf.cloud;
 import pcf.component;
 import pcf.compression;
 import pcf.scan;
-import pcf.vector_3;
 
 // -- CONSTANTS
 
@@ -1558,10 +1558,10 @@ struct VECTOR_3
     // ~~
 
     void ApplyTranslationRotationTransform(
-        ref pcf.vector_3.VECTOR_3 translation_vector,
-        ref pcf.vector_3.VECTOR_3 rotated_x_axis_vector,
-        ref pcf.vector_3.VECTOR_3 rotated_y_axis_vector,
-        ref pcf.vector_3.VECTOR_3 rotated_z_axis_vector
+        ref base.vector_3.VECTOR_3 translation_vector,
+        ref base.vector_3.VECTOR_3 rotated_x_axis_vector,
+        ref base.vector_3.VECTOR_3 rotated_y_axis_vector,
+        ref base.vector_3.VECTOR_3 rotated_z_axis_vector
         )
     {
         SetVector(
