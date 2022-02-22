@@ -23,8 +23,9 @@
 import core.stdc.stdlib : exit;
 import std.algorithm : max;
 import std.conv : to;
-import std.file : write;
+import std.file : exists, mkdirRecurse, write;
 import std.math : cos, round, sin, sqrt, PI;
+import std.path : dirName;
 import std.stdio : readln, writeln, File;
 import std.string : endsWith, format, indexOf, replace, split, startsWith, strip;
 import base.base : Abort, GetReal64, GetText, IsInteger, IsReal;
@@ -1956,6 +1957,8 @@ class CLOUD
         File
             file;
 
+        CreateFolder( file_path.dirName() );
+
         try
         {
             file.open( file_path, "w" );
@@ -1975,12 +1978,16 @@ class CLOUD
         }
     }
 
+    // ~~
+
     void WriteXyzCloudFile(
         string file_path
         )
     {
         File
             file;
+
+        CreateFolder( file_path.dirName() );
 
         try
         {
@@ -2020,6 +2027,8 @@ class CLOUD
     {
         File
             file;
+
+        CreateFolder( file_path.dirName() );
 
         try
         {
@@ -2729,6 +2738,8 @@ class MESH
         File
             file;
 
+        CreateFolder( file_path.dirName() );
+
         try
         {
             file.open( file_path, "w" );
@@ -3015,11 +3026,69 @@ VECTOR_4
 
 // -- FUNCTIONS
 
+string GetFixedFilePath(
+    string file_path
+    )
+{
+    return
+        file_path
+            .replace( '\\', '/' )
+            .replace( "├ê", "È" )
+            .replace( "├ë", "É" )
+            .replace( "├è", "Ê" )
+            .replace( "├ï", "Ë" )
+            .replace( "├ø", "Û" )
+            .replace( "├Ö", "Ù" )
+            .replace( "├?", "Ï" )
+            .replace( "├Ä", "Î" )
+            .replace( "├Ç", "À" )
+            .replace( "├é", "Â" )
+            .replace( "├ö", "Ô" )
+            .replace( "├¿", "è" )
+            .replace( "├®", "é" )
+            .replace( "├¬", "ê" )
+            .replace( "├½", "ë" )
+            .replace( "├╗", "û" )
+            .replace( "├╣", "ù" )
+            .replace( "├»", "ï" )
+            .replace( "├«", "î" )
+            .replace( "├á", "à" )
+            .replace( "├ó", "â" )
+            .replace( "├┤", "ô" );
+}
+
+// ~~
+
+void CreateFolder(
+    string folder_path
+    )
+{
+    if ( folder_path != ""
+         && folder_path != "/"
+         && !folder_path.exists() )
+    {
+        writeln( "Creating folder : ", folder_path );
+
+        try
+        {
+            folder_path.mkdirRecurse();
+        }
+        catch ( Exception exception )
+        {
+            Abort( "Can't create folder : " ~ folder_path, exception );
+        }
+    }
+}
+
+// ~~
+
 void WriteByteArray(
     string file_path,
     ubyte[] file_byte_array
     )
 {
+    CreateFolder( file_path.dirName() );
+
     writeln( "Writing file : ", file_path );
 
     try
@@ -3039,6 +3108,8 @@ void WriteText(
     string file_text
     )
 {
+    CreateFolder( file_path.dirName() );
+
     writeln( "Writing file : ", file_path );
 
     try
@@ -3881,7 +3952,7 @@ void main(
                   && IsInteger( argument_array[ 4 ] ) )
         {
             ReadCloudFile(
-                argument_array[ 0 ],
+                argument_array[ 0 ].GetFixedFilePath(),
                 argument_array[ 1 ].to!float(),
                 argument_array[ 2 ].to!long(),
                 argument_array[ 3 ].to!long(),
@@ -3897,7 +3968,7 @@ void main(
                   && IsReal( argument_array[ 1 ] ) )
         {
             ReadXyzCloudFile(
-                argument_array[ 0 ],
+                argument_array[ 0 ].GetFixedFilePath(),
                 argument_array[ 1 ].to!float()
                 );
 
@@ -3908,7 +3979,7 @@ void main(
                   && IsReal( argument_array[ 1 ] ) )
         {
             ReadPtsCloudFile(
-                argument_array[ 0 ],
+                argument_array[ 0 ].GetFixedFilePath(),
                 argument_array[ 1 ].to!float()
                 );
 
@@ -3919,7 +3990,7 @@ void main(
                   && IsReal( argument_array[ 1 ] ) )
         {
             ReadPcfCloudFile(
-                argument_array[ 0 ],
+                argument_array[ 0 ].GetFixedFilePath(),
                 argument_array[ 1 ].to!float()
                 );
 
@@ -3930,7 +4001,7 @@ void main(
                   && IsReal( argument_array[ 1 ] ) )
         {
             ReadE57CloudFile(
-                argument_array[ 0 ],
+                argument_array[ 0 ].GetFixedFilePath(),
                 argument_array[ 1 ].to!float()
                 );
 
@@ -3941,7 +4012,7 @@ void main(
                   && IsReal( argument_array[ 1 ] ) )
         {
             ReadObjCloudFile(
-                argument_array[ 0 ],
+                argument_array[ 0 ].GetFixedFilePath(),
                 argument_array[ 1 ].to!float()
                 );
 
@@ -3951,7 +4022,7 @@ void main(
                   && argument_array.length >= 1 )
         {
             ReadObjMeshFile(
-                argument_array[ 0 ]
+                argument_array[ 0 ].GetFixedFilePath()
                 );
 
             argument_array = argument_array[ 1 .. $ ];
@@ -4038,7 +4109,7 @@ void main(
                   && HasCloud() )
         {
             WriteCloudFile(
-                argument_array[ 0 ],
+                argument_array[ 0 ].GetFixedFilePath(),
                 argument_array[ 1 ],
                 argument_array[ 2 ],
                 argument_array[ 3 ]
@@ -4050,7 +4121,7 @@ void main(
                   && argument_array.length >= 1
                   && HasCloud() )
         {
-            WriteXyzCloudFile( argument_array[ 0 ] );
+            WriteXyzCloudFile( argument_array[ 0 ].GetFixedFilePath() );
 
             argument_array = argument_array[ 1 .. $ ];
         }
@@ -4058,7 +4129,7 @@ void main(
                   && argument_array.length >= 1
                   && HasCloud() )
         {
-            WritePtsCloudFile( argument_array[ 0 ] );
+            WritePtsCloudFile( argument_array[ 0 ].GetFixedFilePath() );
 
             argument_array = argument_array[ 1 .. $ ];
         }
@@ -4066,7 +4137,7 @@ void main(
                   && argument_array.length >= 1
                   && HasCloud() )
         {
-            WritePcfCloudFile( argument_array[ 0 ] );
+            WritePcfCloudFile( argument_array[ 0 ].GetFixedFilePath() );
 
             argument_array = argument_array[ 1 .. $ ];
         }
@@ -4074,7 +4145,7 @@ void main(
                   && argument_array.length >= 1
                   && HasMesh() )
         {
-            WriteObjMeshFile( argument_array[ 0 ] );
+            WriteObjMeshFile( argument_array[ 0 ].GetFixedFilePath() );
 
             argument_array = argument_array[ 1 .. $ ];
         }
@@ -4083,8 +4154,8 @@ void main(
                   && argument_array[ 1 ].endsWith( ".xml" ) )
         {
             ExtractE57CloudFileDocument(
-                argument_array[ 0 ],
-                argument_array[ 1 ]
+                argument_array[ 0 ].GetFixedFilePath(),
+                argument_array[ 1 ].GetFixedFilePath()
                 );
 
             argument_array = argument_array[ 2 .. $ ];
@@ -4094,8 +4165,8 @@ void main(
                   && argument_array[ 1 ].endsWith( '/' ) )
         {
             ExtractE57CloudFileImages(
-                argument_array[ 0 ],
-                argument_array[ 1 ]
+                argument_array[ 0 ].GetFixedFilePath(),
+                argument_array[ 1 ].GetFixedFilePath()
                 );
 
             argument_array = argument_array[ 2 .. $ ];
@@ -4131,7 +4202,7 @@ void main(
         writeln( "    --rotate-y <degree angle>" );
         writeln( "    --rotate-z <degree angle>" );
         writeln( "    --decimate <precision>" );
-        writeln( "    --write-cloud <header format> <line format> <footer format>" );
+        writeln( "    --write-cloud <file path> <header format> <line format> <footer format>" );
         writeln( "    --write-xyz-cloud <file path>" );
         writeln( "    --write-pts-cloud <file path>" );
         writeln( "    --write-obj-mesh <file path>" );
@@ -4146,6 +4217,7 @@ void main(
         writeln( "    nebula --read-pts-cloud cloud.pts 0.01 --write-pts-cloud decimated_cloud.pts" );
         writeln( "    nebula --read-pts-cloud cloud.pts 0.01 --write-obj-mesh triangulated_cloud.obj" );
         writeln( "    nebula --read-obj-mesh mesh.obj --sample 0.1 --write-xyz-cloud sampled_cloud.xyz" );
+
         Abort( "Invalid arguments : " ~ argument_array.to!string() );
     }
 }

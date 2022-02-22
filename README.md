@@ -11,7 +11,7 @@ Install the [DMD 2 compiler](https://dlang.org/download.html) (using the MinGW s
 Build the executable with the following command line :
 
 ```bash
-dmd -O -m64 nebula.d
+dmd -m64 nebula.d
 ```
 
 ## Command line
@@ -43,7 +43,7 @@ nebula [options]
 --rotate-y <degree angle> : rotate the point cloud around the Y axis
 --rotate-z <degree angle> : rotate the point cloud around the Z axis
 --decimate <precision> : decimate the point cloud
---write-cloud <header format> <line format> <footer format>
+--write-cloud <file path> <header format> <line format> <footer format>
 --write-xyz-cloud <file path> : write an XYZ point cloud
 --write-pts-cloud <file path> : write a PTS point cloud
 --write-pcf-cloud <file path> : write a PCF point cloud
